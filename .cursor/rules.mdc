@@ -1,0 +1,60 @@
+---
+description: Cursor Project Rules for .NET Codebase Context MCP Server
+globs: 
+alwaysApply: false
+---
+# Cursor Project Rules for .NET Codebase Context MCP Server
+
+## Project Overview
+This project implements a Model Context Protocol (MCP) server for .NET codebases, allowing AI assistants to access and understand .NET code on demand.
+
+## Code Style and Conventions
+- Follow standard C# coding conventions and .NET design patterns
+- Use nullable reference types throughout the codebase
+- Prefer async/await for I/O operations
+- Use meaningful variable and method names that clearly indicate purpose
+- Include XML documentation comments for public APIs
+
+## Implementation Guidelines
+- Prioritize simplicity and readability over premature optimization
+- Implement core functionality first before adding advanced features
+- Follow the component structure outlined in the design document
+- Use dependency injection for better testability
+- Implement proper error handling and logging
+
+## AI Assistant Behavior
+- Suggest complete, working implementations rather than code fragments
+- Provide explanations for architectural decisions when making significant changes
+- When implementing a new feature, create all necessary files and components
+- Prioritize the MVP features before suggesting advanced functionality
+- Consider security implications when accessing the file system
+- Suggest unit tests for core functionality
+
+## Project Structure
+- Keep the core MCP server logic separate from the CLI tool
+- Organize code by feature/component rather than by type
+- Follow standard .NET project organization:
+  - `src/` for source code
+  - `tests/` for test projects
+  - `docs/` for documentation
+  - `samples/` for example usage
+
+## Development Workflow
+- Implement one complete component at a time
+- Test each component before moving to the next
+- Focus on the critical path first:
+  1. Project Scanner/Indexer
+  2. Core MCP Tools
+  3. Server Host
+  4. CLI Interface
+
+## Performance Considerations
+- Be mindful of memory usage when scanning large codebases
+- Consider streaming large files rather than loading them entirely in memory
+- Implement caching where appropriate to avoid redundant file operations
+
+## Security Guidelines
+- Implement proper validation for all file paths
+- Restrict access to sensitive files and directories
+- Provide clear logging of all operations for transparency
+- Never execute code from the codebase being analyzed 

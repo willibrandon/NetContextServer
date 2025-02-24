@@ -1,0 +1,44 @@
+---
+description: CLI Tool Implementation Rules
+globs: **/Program.cs, **/CLI/**/*.cs, **/CommandLine/**/*.cs
+alwaysApply: false
+---
+# CLI Tool Implementation Rules
+
+This rule provides guidance for implementing the Command Line Interface (CLI) for the .NET Codebase Context Server.
+
+## User Experience
+- Create a simple, intuitive command-line interface
+- Provide clear help text and usage examples
+- Implement proper error messages for invalid inputs
+- Display progress information for long-running operations
+
+## Command Structure
+- Use a consistent command structure and naming
+- Implement proper argument parsing and validation
+- Support both short and long option formats
+- Provide sensible default values where appropriate
+
+## Configuration
+- Implement a clean configuration loading mechanism
+- Support both command-line arguments and config files
+- Validate all configuration values before use
+- Provide clear error messages for invalid configurations
+
+## Packaging
+- Configure the project as a .NET global tool
+- Set up proper NuGet packaging
+- Include all necessary dependencies
+- Ensure cross-platform compatibility
+
+## Error Handling
+- Implement proper exception handling
+- Provide meaningful error messages to users
+- Include appropriate exit codes for different error conditions
+- Log errors for troubleshooting purposes
+
+## Security
+- Validate all user inputs
+- Implement proper access control for file operations
+- Never expose sensitive information in logs or output
+- Handle graceful shutdown for CTRL+C and other interrupts 
