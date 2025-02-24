@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "NetContextServer.Tool": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
