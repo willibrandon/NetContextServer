@@ -11,12 +11,34 @@ A .NET Codebase Context MCP Server that provides AI assistants with access to yo
 - 🛡️ **Security**: Built-in safeguards for sensitive files and directory access
 - 🎯 **Pattern Management**: Flexible ignore patterns for controlling file access
 
-## Installation
+## Building from Source
 
-Install as a global .NET tool:
-
+1. Clone the repository:
 ```bash
-dotnet tool install --global NetContextServer
+git clone https://github.com/yourusername/NetContextServer.git
+cd NetContextServer
+```
+
+2. Build the solution:
+```bash
+dotnet build
+```
+
+3. Run the tests (optional):
+```bash
+dotnet test
+```
+
+## Running the Server
+
+1. Run the server from the build output:
+```bash
+dotnet run --project src/NetContextServer/NetContextServer.csproj
+```
+
+2. Run the client (in a separate terminal):
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- <command> [options]
 ```
 
 ### Environment Setup
@@ -31,33 +53,33 @@ For semantic search functionality, you need to set up the following environment 
 
 1. **Set Base Directory**:
 ```bash
-NetContextClient.exe set-base-dir --directory "D:\YourProject"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "D:\YourProject"
 ```
 
 2. **List Projects**:
 ```bash
-NetContextClient.exe list-projects-in-dir --directory "D:\YourProject\src"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-projects-in-dir --directory "D:\YourProject\src"
 ```
 
 3. **List Source Files**:
 ```bash
-NetContextClient.exe list-source-files --project-dir "D:\YourProject\src\YourProject"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-source-files --project-dir "D:\YourProject\src\YourProject"
 ```
 
 ### Search Commands
 
 1. **Text Search**:
 ```bash
-NetContextClient.exe search-code --text "authentication"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- search-code --text "authentication"
 ```
 
 2. **Semantic Search**:
 ```bash
 # Search with default number of results (5)
-NetContextClient.exe semantic-search --query "handle user authentication"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-search --query "handle user authentication"
 
 # Search with custom number of results
-NetContextClient.exe semantic-search --query "database connection string" --top 10
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-search --query "database connection string" --top 10
 ```
 
 The semantic search feature:
@@ -70,27 +92,27 @@ The semantic search feature:
 
 1. **Add Ignore Patterns**:
 ```bash
-NetContextClient.exe add-ignore-patterns --patterns "*.txt" "*.log"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- add-ignore-patterns --patterns "*.txt" "*.log"
 ```
 
 2. **View Current Patterns**:
 ```bash
-NetContextClient.exe get-ignore-patterns
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- get-ignore-patterns
 ```
 
 3. **Remove Specific Patterns**:
 ```bash
-NetContextClient.exe remove-ignore-patterns --patterns "*.txt"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- remove-ignore-patterns --patterns "*.txt"
 ```
 
 4. **Clear User Patterns**:
 ```bash
-NetContextClient.exe clear-ignore-patterns
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- clear-ignore-patterns
 ```
 
 5. **View State File Location**:
 ```bash
-NetContextClient.exe get-state-file-location
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- get-state-file-location
 ```
 
 ### Default Ignore Patterns
@@ -115,22 +137,22 @@ The following patterns are ignored by default to protect sensitive information:
 
 1. Set the base directory for your project:
 ```bash
-NetContextClient.exe set-base-dir --directory "D:\Projects\MyApp"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "D:\Projects\MyApp"
 ```
 
 2. Set up custom ignore patterns:
 ```bash
-NetContextClient.exe add-ignore-patterns --patterns "*.generated.cs" "*.designer.cs"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- add-ignore-patterns --patterns "*.generated.cs" "*.designer.cs"
 ```
 
 3. List all projects:
 ```bash
-NetContextClient.exe list-projects-in-dir --directory "D:\Projects\MyApp\src"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-projects-in-dir --directory "D:\Projects\MyApp\src"
 ```
 
 4. Search for authentication-related code:
 ```bash
-NetContextClient.exe semantic-search --query "user authentication and authorization logic"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-search --query "user authentication and authorization logic"
 ```
 
 ## Integration with AI Coding Tools
