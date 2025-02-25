@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "NetContextClient": {
+      "commandName": "Project",
+      "commandLineArgs": "hello"
+    }
+  }
+}
