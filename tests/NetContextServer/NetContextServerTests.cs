@@ -483,7 +483,7 @@ namespace TestProject
             Assert.True(item.ContainsKey("ParentScope"));
             
             // Verify content is not empty
-            Assert.NotEmpty(item["Content"].ToString());
+            Assert.NotEmpty(item["Content"]?.ToString() ?? string.Empty);
             
             // Verify score is a positive number
             var scoreElement = (JsonElement)item["Score"];
@@ -491,7 +491,7 @@ namespace TestProject
             Assert.True(score > 0);
             
             // Verify content doesn't contain unnecessary whitespace at start/end
-            var content = item["Content"].ToString();
+            var content = item["Content"]?.ToString() ?? string.Empty;
             Assert.Equal(content.Trim(), content);
             
             // Verify content doesn't contain using statements
@@ -520,7 +520,7 @@ namespace TestProject
                 $"Content should not have excessive blank lines. Found {blankLineCount} blank lines out of {lines.Length} total lines ({blankLinePercentage:P})");
             
             // 3. Check that parent scope is provided
-            Assert.NotEmpty(item["ParentScope"].ToString());
+            Assert.NotEmpty(item["ParentScope"]?.ToString() ?? string.Empty);
             
             // 4. Check that the content is properly formatted code (contains braces, indentation)
             Assert.Contains("{", content);
@@ -531,8 +531,8 @@ namespace TestProject
         
         // Check if at least one result contains our "hello" keyword or is from TestMethod.cs
         var hasRelevantResult = results.Any(r => 
-            r["Content"].ToString().Contains("hello", StringComparison.OrdinalIgnoreCase) || 
-            r["FilePath"].ToString().Contains("TestMethod.cs"));
+            (r["Content"]?.ToString() ?? string.Empty).Contains("hello", StringComparison.OrdinalIgnoreCase) || 
+            (r["FilePath"]?.ToString() ?? string.Empty).Contains("TestMethod.cs"));
         Assert.True(hasRelevantResult, "Results should include relevant content matching the query");
     }
 

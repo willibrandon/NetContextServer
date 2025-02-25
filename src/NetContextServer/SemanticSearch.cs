@@ -20,17 +20,17 @@ public class SemanticSearch
     private const int OVERLAP = 20;
     private const int CONTEXT_LINES = 3;
     private readonly Kernel _kernel;
-    private readonly Dictionary<string, CodeSnippet> _cache = new();
-    private readonly HashSet<string> _indexedFiles = new();
-    private static readonly string[] _defaultIgnorePatterns = new[] 
-    {
+    private readonly Dictionary<string, CodeSnippet> _cache = [];
+    private readonly HashSet<string> _indexedFiles = [];
+    private static readonly string[] _defaultIgnorePatterns =
+    [
         "**/obj/**",
         "**/bin/**",
         "**/*.generated.cs",
         "**/*.designer.cs",
         "**/*.g.cs",
         "**/*.AssemblyInfo.cs"
-    };
+    ];
 
     public SemanticSearch()
     {
@@ -116,11 +116,11 @@ public class SemanticSearch
             .Take(topK);
     }
 
-    private bool ShouldIgnoreFile(string filePath)
+    private static bool ShouldIgnoreFile(string filePath)
     {
         // Get user patterns from Program.cs
         var userPatternsJson = NetConextServer.GetIgnorePatterns();
-        var userPatterns = JsonSerializer.Deserialize<string[]>(userPatternsJson) ?? Array.Empty<string>();
+        var userPatterns = JsonSerializer.Deserialize<string[]>(userPatternsJson) ?? [];
         var allPatterns = _defaultIgnorePatterns.Concat(userPatterns);
 
         foreach (var pattern in allPatterns)
@@ -163,12 +163,12 @@ public class SemanticSearch
             {
                 chunks.Add(string.Join("\n", currentChunk));
                 // Keep overlap lines for context
-                currentChunk = new List<string>(lines.Skip(i - OVERLAP + 1).Take(OVERLAP));
+                currentChunk = [.. lines.Skip(i - OVERLAP + 1).Take(OVERLAP)];
             }
         }
 
         // Add any remaining lines
-        if (currentChunk.Any())
+        if (currentChunk.Count != 0)
         {
             chunks.Add(string.Join("\n", currentChunk));
         }
@@ -179,7 +179,7 @@ public class SemanticSearch
     private static int[] GetLineNumbers(string content)
     {
         var lineCount = content.Count(c => c == '\n') + 1;
-        return Enumerable.Range(1, lineCount).ToArray();
+        return [.. Enumerable.Range(1, lineCount)];
     }
 
     private static bool IsMeaningfulCode(string chunk)
@@ -191,7 +191,7 @@ public class SemanticSearch
             .Where(line => !string.IsNullOrWhiteSpace(line))
             .Where(line => !line.TrimStart().StartsWith("//"))
             .Where(line => !line.TrimStart().StartsWith("/*"))
-            .Where(line => !line.TrimStart().StartsWith("*"))
+            .Where(line => !line.TrimStart().StartsWith('*'))
             .Count();
 
         // Check if chunk contains important code structures

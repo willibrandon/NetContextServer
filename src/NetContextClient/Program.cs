@@ -397,7 +397,7 @@ class Program
                     await Console.Out.WriteLineAsync($"  {pattern}");
                 }
                 
-                if (response.UserPatterns.Any())
+                if (response.UserPatterns.Length != 0)
                 {
                     await Console.Out.WriteLineAsync("\nUser-added patterns:");
                     foreach (var pattern in response.UserPatterns)

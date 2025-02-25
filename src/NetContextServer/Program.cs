@@ -42,7 +42,7 @@ namespace NetContextServer
 
             // Basic glob pattern validation
             // Disallow patterns that start with / or \
-            if (pattern.StartsWith("/") || pattern.StartsWith("\\"))
+            if (pattern.StartsWith('/') || pattern.StartsWith('\\'))
                 return false;
 
             // Check for invalid characters
@@ -202,7 +202,7 @@ namespace NetContextServer
             var fileName = Path.GetFileName(filePath);
             return GetAllPatterns().Any(pattern =>
             {
-                if (pattern.Contains("*"))
+                if (pattern.Contains('*'))
                 {
                     var regex = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
                     return Regex.IsMatch(fileName, regex, RegexOptions.IgnoreCase);
@@ -394,10 +394,7 @@ namespace NetContextServer
         {
             if (!_isIndexed)
             {
-                if (_semanticSearch == null)
-                {
-                    _semanticSearch = new SemanticSearch();
-                }
+                _semanticSearch ??= new SemanticSearch();
                 var files = Directory.GetFiles(BaseDirectory, "*.*", SearchOption.AllDirectories)
                     .Where(f => f.EndsWith(".cs") || f.EndsWith(".fs") || f.EndsWith(".vb"));
                 await _semanticSearch.IndexFilesAsync(files);
@@ -430,8 +427,8 @@ namespace NetContextServer
                     Results = results.Select(r => new
                     {
                         FilePath = GetRelativePath(r.Snippet.FilePath),
-                        StartLine = r.Snippet.StartLine,
-                        EndLine = r.Snippet.EndLine,
+                        r.Snippet.StartLine,
+                        r.Snippet.EndLine,
                         Content = FormatCodeContent(r.Snippet.Content),
                         Score = Math.Round(r.Score * 100, 1), // Convert to percentage
                         ParentScope = GetParentScope(r.Snippet.Content)
@@ -451,7 +448,7 @@ namespace NetContextServer
             var nonBlankLines = new List<string>();
             
             // Track if we've seen important structural elements
-            bool hasOpeningBrace = content.Contains("{");
+            bool hasOpeningBrace = content.Contains('{');
             
             foreach (var line in lines)
             {
@@ -474,16 +471,16 @@ namespace NetContextServer
                     firstLine.Contains("interface ") ||
                     firstLine.Contains("struct ") ||
                     firstLine.Contains("enum ") ||
-                    (firstLine.Contains("void ") && firstLine.Contains("(")) ||
-                    (firstLine.Contains("public ") && firstLine.Contains("(")) ||
-                    (firstLine.Contains("private ") && firstLine.Contains("(")) ||
-                    (firstLine.Contains("protected ") && firstLine.Contains("(")) ||
-                    (firstLine.Contains("internal ") && firstLine.Contains("(")))
+                    (firstLine.Contains("void ") && firstLine.Contains('(')) ||
+                    (firstLine.Contains("public ") && firstLine.Contains('(')) ||
+                    (firstLine.Contains("private ") && firstLine.Contains('(')) ||
+                    (firstLine.Contains("protected ") && firstLine.Contains('(')) ||
+                    (firstLine.Contains("internal ") && firstLine.Contains('(')))
                 {
                     // Find the line with the opening brace in the original content
                     for (int i = 0; i < lines.Length; i++)
                     {
-                        if (lines[i].Contains("{"))
+                        if (lines[i].Contains('{'))
                         {
                             nonBlankLines.Add(lines[i]);
                             hasOpeningBrace = true;
@@ -517,11 +514,11 @@ namespace NetContextServer
                     trimmedLine.Contains("interface ") ||
                     trimmedLine.Contains("struct ") ||
                     trimmedLine.Contains("enum ") ||
-                    (trimmedLine.Contains("void ") && trimmedLine.Contains("(")) ||
-                    (trimmedLine.Contains("public ") && trimmedLine.Contains("(")) ||
-                    (trimmedLine.Contains("private ") && trimmedLine.Contains("(")) ||
-                    (trimmedLine.Contains("protected ") && trimmedLine.Contains("(")) ||
-                    (trimmedLine.Contains("internal ") && trimmedLine.Contains("("));
+                    (trimmedLine.Contains("void ") && trimmedLine.Contains('(')) ||
+                    (trimmedLine.Contains("public ") && trimmedLine.Contains('(')) ||
+                    (trimmedLine.Contains("private ") && trimmedLine.Contains('(')) ||
+                    (trimmedLine.Contains("protected ") && trimmedLine.Contains('(')) ||
+                    (trimmedLine.Contains("internal ") && trimmedLine.Contains('('));
                 
                 if (isSignificantLine && !addedBlankLine && i > 0)
                 {
@@ -572,7 +569,7 @@ namespace NetContextServer
 
         private static string GetParentScope(string content)
         {
-            List<string> scopeParts = new List<string>();
+            List<string> scopeParts = [];
             string[] lines = content.Split('\n');
 
             foreach (string line in lines)
@@ -629,7 +626,7 @@ namespace NetContextServer
                          trimmed.Contains("private ") || 
                          trimmed.Contains("protected ") ||
                          trimmed.Contains("internal ")) &&
-                         trimmed.Contains("(") && 
+                         trimmed.Contains('(') && 
                          !trimmed.StartsWith("//") && 
                          !trimmed.StartsWith("/*"))
                 {
@@ -650,7 +647,7 @@ namespace NetContextServer
             if (keywordIndex < 0)
                 return string.Empty;
                 
-            string afterKeyword = line.Substring(keywordIndex + keyword.Length + 1).Trim();
+            string afterKeyword = line[(keywordIndex + keyword.Length + 1)..].Trim();
             
             // Find the end of the name (at first space, opening brace, colon, or parenthesis)
             int endIndex = afterKeyword.Length;
@@ -666,7 +663,7 @@ namespace NetContextServer
             
             if (endIndex > 0)
             {
-                return afterKeyword.Substring(0, endIndex).Trim();
+                return afterKeyword[..endIndex].Trim();
             }
             
             return string.Empty;
@@ -679,14 +676,14 @@ namespace NetContextServer
             if (parenIndex <= 0)
                 return string.Empty;
                 
-            string beforeParen = line.Substring(0, parenIndex).Trim();
+            string beforeParen = line[..parenIndex].Trim();
             
             // Find the last space before the parenthesis
             int lastSpaceIndex = beforeParen.LastIndexOf(' ');
             if (lastSpaceIndex >= 0 && lastSpaceIndex < beforeParen.Length - 1)
             {
                 // Return everything after the last space
-                return beforeParen.Substring(lastSpaceIndex + 1).Trim();
+                return beforeParen[(lastSpaceIndex + 1)..].Trim();
             }
             
             return string.Empty;
