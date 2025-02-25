@@ -36,115 +36,127 @@ public class NetContextServerTests : IDisposable
         Assert.Equal("hello, claude.", result.Content[0].Text);
     }
 
-    //[Fact]
-    //public void Echo_ReturnsInputString()
-    //{
-    //    var input = "test message";
-    //    var result = NetConextServer.Echo(input);
-    //    Assert.Equal(input, result);
-    //}
+    [Fact]
+    public async Task Echo_ReturnsInputString()
+    {
+        var input = "test message";
+        var result = await client.CallToolAsync("echo", new Dictionary<string, object> { { "input", input } });
+        Assert.Equal(input, result.Content[0].Text);
+    }
 
-    //[Theory(DisplayName = "Add_ReturnsSumAsString")]
-    //[InlineData(1, 2, "3")]
-    //[InlineData(-1, 1, "0")]
-    //[InlineData(0, 0, "0")]
-    //public void Add_ReturnsSumAsString(int a, int b, string expected)
-    //{
-    //    var result = NetConextServer.Add(a, b);
-    //    Assert.Equal(expected, result);
-    //}
+    [Theory]
+    [InlineData(1, 2, "3")]
+    [InlineData(-1, 1, "0")]
+    [InlineData(0, 0, "0")]
+    public async Task Add_ReturnsSumAsString(int a, int b, string expected)
+    {
+        var result = await client.CallToolAsync("add", new Dictionary<string, object> 
+        { 
+            { "a", a },
+            { "b", b }
+        });
+        Assert.Equal(expected, result.Content[0].Text);
+    }
 
-    //[Fact(DisplayName = "AddComplex_ReturnsFormattedString")]
-    //public void AddComplex_ReturnsFormattedString()
-    //{
-    //    var obj = new ComplicatedObject
-    //    {
-    //        Name = "Test",
-    //        Age = 25,
-    //        Hobbies = ["Reading", "Coding"]
-    //    };
+    [Fact]
+    public async Task AddComplex_ReturnsFormattedString()
+    {
+        var obj = new Dictionary<string, object>
+        {
+            { "Name", "Test" },
+            { "Age", 25 },
+            { "Hobbies", new[] { "Reading", "Coding" } }
+        };
 
-    //    var result = NetConextServer.AddComplex(obj);
-    //    Assert.Equal("Name: Test, Age: 25, Hobbies: Reading, Coding", result);
-    //}
+        var result = await client.CallToolAsync("add_complex", new Dictionary<string, object> { { "obj", obj } });
+        Assert.Equal("Name: Test, Age: 25, Hobbies: Reading, Coding", result.Content[0].Text);
+    }
 
-    //[Fact(DisplayName = "Exception_ThrowsException")]
-    //public void Exception_ThrowsException()
-    //{
-    //    var ex = Assert.Throws<Exception>(() => NetConextServer.Exception());
-    //    Assert.Equal("This is an exception", ex.Message);
-    //}
+    [Fact]
+    public async Task Exception_ThrowsException()
+    {
+        var result = await client.CallToolAsync("throw_exception");
+        Assert.Contains("This is an exception", result.Content[0].Text);
+    }
 
-    //[Fact(DisplayName = "ListProjects_ReturnsJsonArray")]
-    //public void ListProjects_ReturnsJsonArray()
-    //{
-    //    var result = NetConextServer.ListProjects();
-    //    var projects = JsonSerializer.Deserialize<string[]>(result);
+    [Fact]
+    public async Task ListProjects_ReturnsJsonArray()
+    {
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
         
-    //    Assert.NotNull(projects);
-    //    Assert.Contains(projects, p => p.EndsWith(".csproj"));
-    //}
-
-    //[Fact(DisplayName = "ListFiles_WithValidPath_ReturnsJsonArray")]
-    //public void ListFiles_WithValidPath_ReturnsJsonArray()
-    //{
-    //    var result = NetConextServer.ListFiles(_testDir);
-    //    var files = JsonSerializer.Deserialize<string[]>(result);
+        var result = await client.CallToolAsync("list_projects");
+        var projects = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
         
-    //    Assert.NotNull(files);
-    //    Assert.Contains(files, f => f.EndsWith(".cs"));
-    //}
+        Assert.NotNull(projects);
+        Assert.Contains(projects, p => p.EndsWith(".csproj"));
+    }
 
-    //[Fact(DisplayName = "ListFiles_WithInvalidPath_ReturnsError")]
-    //public void ListFiles_WithInvalidPath_ReturnsError()
-    //{
-    //    var result = NetConextServer.ListFiles(Path.Combine(_testDir, "NonExistent"));
-    //    var error = JsonSerializer.Deserialize<string[]>(result);
+    [Fact]
+    public async Task ListFiles_WithValidPath_ReturnsJsonArray()
+    {
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
         
-    //    Assert.NotNull(error);
-    //    Assert.Contains(error, e => e.StartsWith("Error:"));
-    //}
+        var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", _testDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+        
+        Assert.NotNull(files);
+        Assert.Contains(files, f => f.EndsWith(".cs"));
+    }
 
-    //[Fact(DisplayName = "SearchCode_FindsMatchingContent")]
-    //public void SearchCode_FindsMatchingContent()
-    //{
-    //    // Write test content
-    //    File.WriteAllText(_testCsFilePath, "public class TestSearch { private string test = \"findme\"; }");
+    [Fact]
+    public async Task ListFiles_WithInvalidPath_ReturnsError()
+    {
+        var invalidPath = Path.Combine(_testDir, "NonExistent");
+        var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", invalidPath } });
+        var error = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
         
-    //    var result = NetConextServer.SearchCode("findme");
-    //    var matches = JsonSerializer.Deserialize<string[]>(result);
-        
-    //    Assert.NotNull(matches);
-    //    Assert.Contains(matches, m => m.Contains("findme"));
-    //}
+        Assert.NotNull(error);
+        Assert.Contains(error, e => e.StartsWith("Error:"));
+    }
 
-    //[Fact(DisplayName = "OpenFile_WithValidPath_ReturnsContent")]
-    //public void OpenFile_WithValidPath_ReturnsContent()
-    //{
-    //    var content = "test content";
-    //    File.WriteAllText(_testCsFilePath, content);
+    [Fact]
+    public async Task SearchCode_FindsMatchingContent()
+    {
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
         
-    //    var result = NetConextServer.OpenFile(_testCsFilePath);
-    //    Assert.Equal(content, result);
-    //}
-
-    //[Fact(DisplayName = "OpenFile_WithInvalidPath_ReturnsError")]
-    //public void OpenFile_WithInvalidPath_ReturnsError()
-    //{
-    //    var result = NetConextServer.OpenFile(Path.Combine(_testDir, "NonExistent.cs"));
-    //    Assert.StartsWith("Error:", result);
-    //}
-
-    //[Fact(DisplayName = "OpenFile_WithLargeContent_ReturnsTruncated")]
-    //public void OpenFile_WithLargeContent_ReturnsTruncated()
-    //{
-    //    var largeContent = new string('x', 150_000);
-    //    File.WriteAllText(_testCsFilePath, largeContent);
+        // Write test content
+        File.WriteAllText(_testCsFilePath, "public class TestSearch { private string test = \"findme\"; }");
         
-    //    var result = NetConextServer.OpenFile(_testCsFilePath);
-    //    Assert.Contains("[Truncated]", result);
-    //    Assert.True(result.Length < largeContent.Length);
-    //}
+        var result = await client.CallToolAsync("search_code", new Dictionary<string, object> { { "searchText", "findme" } });
+        var matches = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+        
+        Assert.NotNull(matches);
+        Assert.Contains(matches, m => m.Contains("findme"));
+    }
+
+    [Fact]
+    public async Task OpenFile_WithValidPath_ReturnsContent()
+    {
+        var content = "test content";
+        File.WriteAllText(_testCsFilePath, content);
+        
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", _testCsFilePath } });
+        Assert.Equal(content, result.Content[0].Text);
+    }
+
+    [Fact]
+    public async Task OpenFile_WithInvalidPath_ReturnsError()
+    {
+        var invalidPath = Path.Combine(_testDir, "NonExistent.cs");
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", invalidPath } });
+        Assert.StartsWith("Error:", result.Content[0].Text);
+    }
+
+    [Fact]
+    public async Task OpenFile_WithLargeContent_ReturnsTruncated()
+    {
+        var largeContent = new string('x', 150_000);
+        File.WriteAllText(_testCsFilePath, largeContent);
+        
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", _testCsFilePath } });
+        Assert.Contains("[Truncated]", result.Content[0].Text);
+        Assert.True(result.Content[0].Text.Length < largeContent.Length);
+    }
 
     public void Dispose()
     {
