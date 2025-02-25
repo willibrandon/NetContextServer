@@ -1,4 +1,6 @@
 ﻿using MCPSharp;
+using NetContextServer.Core.Indexer;
+using NetContextServer.Core.MCP;
 
 namespace NetContextServer.Tool;
 
@@ -22,8 +24,17 @@ internal class Program
             
             Console.WriteLine($"Scanning solution at: {solutionRoot}");
 
-            // Create and start the MCP server
-            await MCPServer.StartAsync("foo", "0.1.0");
+            // Build the project index
+            var index = ProjectIndexer.BuildIndex(solutionRoot);
+            Console.WriteLine($"Indexed {index.ProjectPaths.Count} projects with {ProjectIndexer.GetAllSourceFiles(index).Count} source files");
+            
+            // Initialize the tool classes with the project index
+            ProjectTools.Initialize(index);
+            FileTools.Initialize(index);
+            
+            // Start the MCP server
+            Console.WriteLine("Starting MCP server...");
+            await MCPServer.StartAsync("NetContextServer", "1.0.0");
             
             // The server will block until terminated
         }
