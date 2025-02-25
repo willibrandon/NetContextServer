@@ -67,10 +67,43 @@ class Program
                 Environment.Exit(1);
             }
         }, aOption, bOption);
+
+        // Add Complex command
+        var addComplexCommand = new Command("add-complex", "Add a complex object with name, age, and hobbies");
+        var nameOption = new Option<string>("--name", "Person's name") { IsRequired = true };
+        var ageOption = new Option<int>("--age", "Person's age") { IsRequired = true };
+        var hobbiesOption = new Option<string[]>("--hobbies", "List of hobbies") { IsRequired = true, AllowMultipleArgumentsPerToken = true };
+        
+        addComplexCommand.AddOption(nameOption);
+        addComplexCommand.AddOption(ageOption);
+        addComplexCommand.AddOption(hobbiesOption);
+        
+        addComplexCommand.SetHandler(async (string name, int age, string[] hobbies) =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var complexObj = new Dictionary<string, object>
+                {
+                    { "Name", name },
+                    { "Age", age },
+                    { "Hobbies", hobbies }
+                };
+                
+                var result = await client.CallToolAsync("add_complex", new Dictionary<string, object> { { "obj", complexObj } });
+                await Console.Out.WriteLineAsync(result.Content[0].Text);
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, nameOption, ageOption, hobbiesOption);
         
         rootCommand.AddCommand(helloCommand);
         rootCommand.AddCommand(echoCommand);
         rootCommand.AddCommand(addCommand);
+        rootCommand.AddCommand(addComplexCommand);
         
         return await rootCommand.InvokeAsync(args);
     }
