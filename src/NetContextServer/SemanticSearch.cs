@@ -1,7 +1,7 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Embeddings;
-using System.Text.RegularExpressions;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace NetContextServer;
 
@@ -14,12 +14,22 @@ public class CodeSnippet
     public required ReadOnlyMemory<float> Embedding { get; init; }
 }
 
+public class SearchResult
+{
+    public string FilePath { get; set; } = string.Empty;
+    public int StartLine { get; set; }
+    public int EndLine { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public double Score { get; set; }
+    public string ParentScope { get; set; } = string.Empty;
+}
+
 public class SemanticSearch
 {
     private const int CHUNK_SIZE = 200;
     private const int OVERLAP = 20;
     private const int CONTEXT_LINES = 3;
-    private readonly Kernel _kernel;
+    private readonly Kernel? _kernel;
     private readonly Dictionary<string, CodeSnippet> _cache = [];
     private readonly HashSet<string> _indexedFiles = [];
     private static readonly string[] _defaultIgnorePatterns =
@@ -31,6 +41,7 @@ public class SemanticSearch
         "**/*.g.cs",
         "**/*.AssemblyInfo.cs"
     ];
+    private bool _credentialsAvailable = false;
 
     public SemanticSearch()
     {
@@ -39,24 +50,41 @@ public class SemanticSearch
 
         if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key))
         {
-            throw new InvalidOperationException("Azure OpenAI credentials not found in environment variables.");
+            Console.WriteLine("Warning: Azure OpenAI credentials not found in environment variables. Semantic search will be unavailable.");
+            _credentialsAvailable = false;
+            return;
         }
 
-        var builder = Kernel.CreateBuilder();
+        try
+        {
+            var builder = Kernel.CreateBuilder();
 #pragma warning disable SKEXP0010
-        builder.AddAzureOpenAITextEmbeddingGeneration(
-            "text-embedding-ada-002",
-            endpoint!,
-            key!
-        );
+            builder.AddAzureOpenAITextEmbeddingGeneration(
+                "text-embedding-ada-002",
+                endpoint!,
+                key!
+            );
 #pragma warning restore SKEXP0010
-        _kernel = builder.Build();
+            _kernel = builder.Build();
+            _credentialsAvailable = true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Failed to initialize Azure OpenAI client: {ex.Message}");
+            _credentialsAvailable = false;
+        }
     }
 
     public async Task IndexFilesAsync(IEnumerable<string> filePaths)
     {
+        if (!_credentialsAvailable)
+        {
+            // Skip indexing if credentials aren't available
+            return;
+        }
+
 #pragma warning disable SKEXP0001
-        var service = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+        var service = _kernel!.GetRequiredService<ITextEmbeddingGenerationService>();
 #pragma warning restore SKEXP0001
 
         foreach (var filePath in filePaths)
@@ -102,9 +130,21 @@ public class SemanticSearch
 
     public async Task<IEnumerable<(CodeSnippet Snippet, double Score)>> SearchAsync(string query, int topK = 5)
     {
+        if (!_credentialsAvailable)
+        {
+            // Return an empty result if credentials aren't available
+            return [];
+        }
+
+        if (_cache.Count == 0)
+        {
+            return Enumerable.Empty<(CodeSnippet, double)>();
+        }
+
 #pragma warning disable SKEXP0001
-        var service = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+        var service = _kernel!.GetRequiredService<ITextEmbeddingGenerationService>();
 #pragma warning restore SKEXP0001
+
         var queryEmbedding = await service.GenerateEmbeddingAsync(query);
 
         return _cache.Values
@@ -114,6 +154,46 @@ public class SemanticSearch
             ))
             .OrderByDescending(x => x.Score)
             .Take(topK);
+    }
+
+    public async Task<List<SearchResult>> SemanticSearchAsync(string query, int topK = 5)
+    {
+        if (!_credentialsAvailable)
+        {
+            // Return an empty result with a message if credentials aren't available
+            return
+            [
+                new SearchResult
+                {
+                    FilePath = "semantic_search_unavailable",
+                    StartLine = 0,
+                    EndLine = 0,
+                    Content = "Semantic search is unavailable because Azure OpenAI credentials are not configured.",
+                    Score = 0,
+                    ParentScope = "N/A"
+                }
+            ];
+        }
+
+        var results = await SearchAsync(query, topK);
+        
+        return results
+            .Select(x => new SearchResult
+            {
+                FilePath = x.Snippet.FilePath,
+                StartLine = x.Snippet.StartLine,
+                EndLine = x.Snippet.EndLine,
+                Content = x.Snippet.Content,
+                Score = x.Score,
+                ParentScope = GetParentScope(x.Snippet.FilePath, x.Snippet.StartLine)
+            })
+            .ToList();
+    }
+
+    private static string GetParentScope(string filePath, int lineNumber)
+    {
+        // Simple implementation - in a real system, you would parse the code to find the actual parent scope
+        return "Unknown";
     }
 
     private static bool ShouldIgnoreFile(string filePath)
