@@ -1,8 +1,7 @@
 {
   "profiles": {
     "NetContextClient": {
-      "commandName": "Project",
-      "commandLineArgs": "semantic-search --query \"test\" --top 5"
+      "commandName": "Project"
     }
   }
 }
