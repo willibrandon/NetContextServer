@@ -45,7 +45,8 @@ public class NetContextServerTests : IDisposable
         File.WriteAllText(_testProjectPath, "<Project />");
         File.WriteAllText(_testCsFilePath, "public class Test { }");
 
-        client = new MCPClient("Test Client", "1.0.0", "NetContextServer.exe");
+        var executableName = OperatingSystem.IsWindows() ? "NetContextServer.exe" : "NetContextServer";
+        client = new MCPClient("Test Client", "1.0.0", executableName);
     }
 
     [Fact]
