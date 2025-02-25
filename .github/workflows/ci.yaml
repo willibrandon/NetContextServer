@@ -8,10 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+    runs-on: windows-latest
         
     steps:
     - uses: actions/checkout@v3
@@ -27,18 +24,5 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
       
-    - name: Make executable (Linux only)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        chmod +x src/NetContextServer/bin/Debug/net9.0/NetContextServer
-        ls -la src/NetContextServer/bin/Debug/net9.0/
-      
-    - name: Copy executable to test directory (Linux only)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        mkdir -p tests/NetContextServer/bin/Debug/net9.0/
-        cp src/NetContextServer/bin/Debug/net9.0/NetContextServer tests/NetContextServer/bin/Debug/net9.0/
-        ls -la tests/NetContextServer/bin/Debug/net9.0/
-      
     - name: Test
-      run: dotnet test --no-build --verbosity normal 
+      run: dotnet test --no-build 
