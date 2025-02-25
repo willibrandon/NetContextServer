@@ -611,8 +611,30 @@ namespace System {
 }" }
         };
 
+        // Add files in different languages and styles for cross-language testing
+        var multiLanguageFiles = new Dictionary<string, string>
+        {
+            { "AuthenticationVB.vb", @"
+Namespace Security
+    Public Class AuthenticationVB
+        Public Function ValidateCredentials(username As String, password As String) As Boolean
+            ' VB.NET implementation of credential validation
+            Return Not String.IsNullOrEmpty(username) AndAlso Not String.IsNullOrEmpty(password)
+        End Function
+    End Class
+End Namespace" },
+            { "SecurityFSharp.fs", @"
+namespace Security
+
+type SecurityFSharp() =
+    member this.CheckPermission(userId: string, resource: string) =
+        // F# implementation of permission checking
+        not (System.String.IsNullOrEmpty(userId)) && not (System.String.IsNullOrEmpty(resource))
+" }
+        };
+
         // Create the test files
-        foreach (var file in testFiles)
+        foreach (var file in testFiles.Concat(multiLanguageFiles))
         {
             File.WriteAllText(Path.Combine(_testDir, file.Key), file.Value);
         }
@@ -627,6 +649,7 @@ namespace System {
             { "handle authentication errors", new[] { "Authentication.cs", "Logging.cs", "UserManagement.cs" } }
         };
         
+        // Run positive test cases
         foreach (var queryTest in queryTests)
         {
             var query = queryTest.Key;
@@ -688,7 +711,191 @@ namespace System {
                     $"Parent scope should be relevant to the domain. Got: {parentScope}"
                 );
             }
+            
+            // Verify content relevance for each result
+            foreach (var resultItem in results)
+            {
+                var content = resultItem["Content"]?.ToString() ?? string.Empty;
+                var filePath = Path.GetFileName(resultItem["FilePath"]?.ToString() ?? string.Empty);
+                
+                // Check content relevance based on the specific file type
+                switch (filePath.ToLowerInvariant())
+                {
+                    case "authentication.cs":
+                        if (query.Contains("authentication") || query.Contains("login") || query.Contains("verify"))
+                        {
+                            Assert.True(
+                                content.Contains("password", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("username", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("credentials", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("validate", StringComparison.OrdinalIgnoreCase),
+                                $"Authentication.cs content should contain authentication-related terms for query '{query}'. Content: {content}"
+                            );
+                        }
+                        break;
+                        
+                    case "usermanagement.cs":
+                        if (query.Contains("authentication") || query.Contains("login") || query.Contains("verify"))
+                        {
+                            Assert.True(
+                                content.Contains("password", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("username", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("login", StringComparison.OrdinalIgnoreCase),
+                                $"UserManagement.cs content should contain login-related terms for query '{query}'. Content: {content}"
+                            );
+                        }
+                        break;
+                        
+                    case "security.cs":
+                        if (query.Contains("permissions") || query.Contains("access"))
+                        {
+                            Assert.True(
+                                content.Contains("access", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("resource", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("check", StringComparison.OrdinalIgnoreCase),
+                                $"Security.cs content should contain access-related terms for query '{query}'. Content: {content}"
+                            );
+                        }
+                        break;
+                        
+                    case "logging.cs":
+                        if (query.Contains("error") || query.Contains("exception"))
+                        {
+                            Assert.True(
+                                content.Contains("error", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("exception", StringComparison.OrdinalIgnoreCase) ||
+                                content.Contains("log", StringComparison.OrdinalIgnoreCase),
+                                $"Logging.cs content should contain error-related terms for query '{query}'. Content: {content}"
+                            );
+                        }
+                        break;
+                }
+            }
+            
+            // Verify that the most relevant results have scores above a minimum threshold
+            Assert.True(scores[0] >= 65.0, $"Top result should have a relevance score of at least 65%. Got: {scores[0]}%");
+            
+            // For expected files, verify they have a minimum score
+            foreach (var expectedFile in expectedFiles)
+            {
+                var matchingResult = results.FirstOrDefault(r => 
+                    Path.GetFileName(r["FilePath"]?.ToString() ?? string.Empty)
+                        .Equals(expectedFile, StringComparison.OrdinalIgnoreCase));
+                        
+                if (matchingResult != null)
+                {
+                    var score = ((JsonElement)matchingResult["Score"]).GetDouble();
+                    Assert.True(score >= 60.0, 
+                        $"Expected file {expectedFile} should have a relevance score of at least 60%. Got: {score}%");
+                }
+            }
+            
+            // Verify parent scope accuracy for specific files
+            foreach (var resultItem in results)
+            {
+                var filePath = Path.GetFileName(resultItem["FilePath"]?.ToString() ?? string.Empty);
+                var parentScope = resultItem["ParentScope"]?.ToString() ?? string.Empty;
+                
+                switch (filePath.ToLowerInvariant())
+                {
+                    case "authentication.cs":
+                        Assert.Contains("Authentication", parentScope, StringComparison.OrdinalIgnoreCase);
+                        Assert.Contains("Security", parentScope, StringComparison.OrdinalIgnoreCase);
+                        break;
+                    case "security.cs":
+                        Assert.Contains("Security", parentScope, StringComparison.OrdinalIgnoreCase);
+                        Assert.Contains("Access", parentScope, StringComparison.OrdinalIgnoreCase);
+                        break;
+                    case "usermanagement.cs":
+                        Assert.Contains("UserManagement", parentScope, StringComparison.OrdinalIgnoreCase);
+                        Assert.Contains("Users", parentScope, StringComparison.OrdinalIgnoreCase);
+                        break;
+                    case "logging.cs":
+                        Assert.Contains("Logging", parentScope, StringComparison.OrdinalIgnoreCase);
+                        Assert.Contains("System", parentScope, StringComparison.OrdinalIgnoreCase);
+                        break;
+                }
+            }
         }
+        
+        // Test negative cases
+        var negativeTests = new Dictionary<string, string[]>
+        {
+            { "database connection string", new[] { "Authentication.cs", "Security.cs", "UserManagement.cs", "Logging.cs" } },
+            { "file system operations", new[] { "Authentication.cs", "Security.cs", "UserManagement.cs", "Logging.cs" } }
+        };
+
+        foreach (var negativeTest in negativeTests)
+        {
+            var query = negativeTest.Key;
+            var unexpectedFiles = negativeTest.Value;
+            
+            Console.WriteLine($"Testing negative query: {query}");
+            
+            var result = await client.CallToolAsync("semantic_search", new Dictionary<string, object> 
+            { 
+                { "query", query },
+                { "topK", 3 }
+            });
+            
+            var response = JsonSerializer.Deserialize<Dictionary<string, object>>(result.Content[0].Text);
+            Assert.NotNull(response);
+            
+            var resultsJson = System.Text.Json.JsonSerializer.Serialize(response["Results"]);
+            var results = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(resultsJson);
+            
+            Assert.NotNull(results);
+            
+            if (results.Count > 0)
+            {
+                var scores = results.Select(r => ((JsonElement)r["Score"]).GetDouble()).ToArray();
+                var foundFiles = results.Select(r => Path.GetFileName(r["FilePath"]?.ToString() ?? string.Empty)).ToArray();
+                
+                Console.WriteLine($"Found files for negative query: {string.Join(", ", foundFiles)}");
+                Console.WriteLine($"Scores for negative query: {string.Join(", ", scores)}");
+                
+                // Verify that the top results don't have high scores (since they shouldn't be relevant)
+                // We use a lower threshold for negative tests since some semantic similarity might still exist
+                if (scores.Length > 0)
+                {
+                    // The threshold is lower here because we expect these to be less relevant
+                    Assert.True(scores[0] < 75.0, 
+                        $"Top result for irrelevant query '{query}' should have a score below 75%. Got: {scores[0]}%");
+                }
+            }
+        }
+        
+        // Test cross-language semantic search
+        var crossLanguageQuery = "validate user credentials across languages";
+        var crossLanguageResult = await client.CallToolAsync("semantic_search", new Dictionary<string, object> 
+        { 
+            { "query", crossLanguageQuery },
+            { "topK", 5 }
+        });
+
+        var crossLanguageResponse = JsonSerializer.Deserialize<Dictionary<string, object>>(crossLanguageResult.Content[0].Text);
+        Assert.NotNull(crossLanguageResponse);
+        
+        var crossLanguageResultsJson = System.Text.Json.JsonSerializer.Serialize(crossLanguageResponse["Results"]);
+        var crossLanguageResults = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(crossLanguageResultsJson);
+        
+        Assert.NotNull(crossLanguageResults);
+        Assert.NotEmpty(crossLanguageResults);
+        
+        var crossLanguageFiles = crossLanguageResults.Select(r => Path.GetFileName(r["FilePath"]?.ToString() ?? string.Empty)).ToArray();
+        var crossLanguageScores = crossLanguageResults.Select(r => ((JsonElement)r["Score"]).GetDouble()).ToArray();
+        
+        Console.WriteLine($"Cross-language query: {crossLanguageQuery}");
+        Console.WriteLine($"Found files: {string.Join(", ", crossLanguageFiles)}");
+        Console.WriteLine($"Scores: {string.Join(", ", crossLanguageScores)}");
+        
+        // Verify that at least one C# and one VB.NET authentication file are found
+        // We don't assert both must be found because the semantic search might prioritize one over the other
+        Assert.True(
+            crossLanguageFiles.Any(f => f.Equals("Authentication.cs", StringComparison.OrdinalIgnoreCase)) ||
+            crossLanguageFiles.Any(f => f.Equals("AuthenticationVB.vb", StringComparison.OrdinalIgnoreCase)),
+            "At least one authentication file (C# or VB.NET) should be found for cross-language query"
+        );
     }
 
     [Fact]
