@@ -33,6 +33,42 @@ namespace NetContextServer
             LoadState();
         }
 
+        private static bool IsValidGlobPattern(string pattern)
+        {
+            if (string.IsNullOrWhiteSpace(pattern))
+                return false;
+
+            // Basic glob pattern validation
+            // Disallow patterns that start with / or \
+            if (pattern.StartsWith("/") || pattern.StartsWith("\\"))
+                return false;
+
+            // Check for invalid characters
+            var invalidChars = Path.GetInvalidFileNameChars()
+                .Where(c => c != '*' && c != '?' && c != '[' && c != ']')
+                .ToArray();
+            
+            if (pattern.Any(c => invalidChars.Contains(c)))
+                return false;
+
+            // Ensure balanced square brackets if used
+            var openBrackets = pattern.Count(c => c == '[');
+            var closeBrackets = pattern.Count(c => c == ']');
+            if (openBrackets != closeBrackets)
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Get the location of the state file
+        /// </summary>
+        [McpFunction("get_state_file_location", "Get the location of the ignore patterns state file")]
+        public static string GetStateFileLocation()
+        {
+            return JsonSerializer.Serialize(new { StateFilePath = StateFile });
+        }
+
         private static void SaveState()
         {
             var state = new { UserPatterns = UserIgnorePatterns.ToArray() };
@@ -61,17 +97,31 @@ namespace NetContextServer
         [McpFunction("add_ignore_patterns", "Add patterns to ignore when scanning files")]
         public static string AddIgnorePatterns([McpParameter(true)] string[] patterns)
         {
+            var invalidPatterns = new List<string>();
+            var validPatterns = new List<string>();
+
             foreach (var pattern in patterns)
             {
-                UserIgnorePatterns.Add(pattern);
+                if (IsValidGlobPattern(pattern))
+                {
+                    UserIgnorePatterns.Add(pattern);
+                    validPatterns.Add(pattern);
+                }
+                else
+                {
+                    invalidPatterns.Add(pattern);
+                }
             }
+
             SaveState();
             var allPatterns = GetAllPatterns().ToArray();
             return JsonSerializer.Serialize(new
             {
                 DefaultPatterns = DefaultIgnorePatterns.ToArray(),
                 UserPatterns = UserIgnorePatterns.ToArray(),
-                AllPatterns = allPatterns
+                AllPatterns = allPatterns,
+                ValidPatternsAdded = validPatterns.ToArray(),
+                InvalidPatterns = invalidPatterns.ToArray()
             });
         }
 
@@ -105,6 +155,45 @@ namespace NetContextServer
                 DefaultPatterns = DefaultIgnorePatterns.ToArray(),
                 UserPatterns = UserIgnorePatterns.ToArray(),
                 AllPatterns = allPatterns
+            });
+        }
+
+        /// <summary>
+        /// Remove specific ignore patterns
+        /// </summary>
+        [McpFunction("remove_ignore_patterns", "Remove specific ignore patterns")]
+        public static string RemoveIgnorePatterns([McpParameter(true)] string[] patterns)
+        {
+            var removedPatterns = new List<string>();
+            var notFoundPatterns = new List<string>();
+            var defaultPatterns = new List<string>();
+
+            foreach (var pattern in patterns)
+            {
+                if (DefaultIgnorePatterns.Contains(pattern))
+                {
+                    defaultPatterns.Add(pattern);
+                }
+                else if (UserIgnorePatterns.Remove(pattern))
+                {
+                    removedPatterns.Add(pattern);
+                }
+                else
+                {
+                    notFoundPatterns.Add(pattern);
+                }
+            }
+
+            SaveState();
+            var allPatterns = GetAllPatterns().ToArray();
+            return JsonSerializer.Serialize(new
+            {
+                DefaultPatterns = DefaultIgnorePatterns.ToArray(),
+                UserPatterns = UserIgnorePatterns.ToArray(),
+                AllPatterns = allPatterns,
+                RemovedPatterns = removedPatterns.ToArray(),
+                NotFoundPatterns = notFoundPatterns.ToArray(),
+                DefaultPatternsSkipped = defaultPatterns.ToArray()
             });
         }
 

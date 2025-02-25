@@ -283,15 +283,29 @@ class Program
             {
                 using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("add_ignore_patterns", new Dictionary<string, object> { { "patterns", patterns } });
-                var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(result.Content[0].Text);
+                var response = JsonSerializer.Deserialize<AddIgnorePatternsResponse>(result.Content[0].Text);
                 
-                await Console.Out.WriteLineAsync("Added user patterns:");
-                foreach (var pattern in response!.UserPatterns)
+                if (response!.InvalidPatterns.Length > 0)
                 {
-                    await Console.Out.WriteLineAsync($"  {pattern}");
+                    await Console.Out.WriteLineAsync("Invalid patterns (not added):");
+                    foreach (var pattern in response.InvalidPatterns)
+                    {
+                        await Console.Out.WriteLineAsync($"  {pattern}");
+                    }
+                    await Console.Out.WriteLineAsync();
+                }
+
+                if (response.ValidPatternsAdded.Length > 0)
+                {
+                    await Console.Out.WriteLineAsync("Added user patterns:");
+                    foreach (var pattern in response.ValidPatternsAdded)
+                    {
+                        await Console.Out.WriteLineAsync($"  {pattern}");
+                    }
+                    await Console.Out.WriteLineAsync();
                 }
                 
-                await Console.Out.WriteLineAsync("\nAll active patterns:");
+                await Console.Out.WriteLineAsync("All active patterns:");
                 foreach (var pattern in response.AllPatterns)
                 {
                     await Console.Out.WriteLineAsync($"  {pattern}");
@@ -303,6 +317,79 @@ class Program
                 Environment.Exit(1);
             }
         }, patternsOption);
+
+        // Remove Ignore Patterns command
+        var removeIgnorePatternsCommand = new Command("remove-ignore-patterns", "Remove specific ignore patterns");
+        var removePatternsOption = new Option<string[]>("--patterns", "The patterns to remove") { IsRequired = true, AllowMultipleArgumentsPerToken = true };
+        removeIgnorePatternsCommand.AddOption(removePatternsOption);
+        removeIgnorePatternsCommand.SetHandler(async (string[] patterns) =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var result = await client.CallToolAsync("remove_ignore_patterns", new Dictionary<string, object> { { "patterns", patterns } });
+                var response = JsonSerializer.Deserialize<RemoveIgnorePatternsResponse>(result.Content[0].Text);
+
+                if (response!.DefaultPatternsSkipped.Length > 0)
+                {
+                    await Console.Out.WriteLineAsync("Default patterns (cannot be removed):");
+                    foreach (var pattern in response.DefaultPatternsSkipped)
+                    {
+                        await Console.Out.WriteLineAsync($"  {pattern}");
+                    }
+                    await Console.Out.WriteLineAsync();
+                }
+
+                if (response.RemovedPatterns.Length > 0)
+                {
+                    await Console.Out.WriteLineAsync("Successfully removed patterns:");
+                    foreach (var pattern in response.RemovedPatterns)
+                    {
+                        await Console.Out.WriteLineAsync($"  {pattern}");
+                    }
+                    await Console.Out.WriteLineAsync();
+                }
+
+                if (response.NotFoundPatterns.Length > 0)
+                {
+                    await Console.Out.WriteLineAsync("Patterns not found:");
+                    foreach (var pattern in response.NotFoundPatterns)
+                    {
+                        await Console.Out.WriteLineAsync($"  {pattern}");
+                    }
+                    await Console.Out.WriteLineAsync();
+                }
+
+                await Console.Out.WriteLineAsync("Remaining patterns:");
+                foreach (var pattern in response.AllPatterns)
+                {
+                    await Console.Out.WriteLineAsync($"  {pattern}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, removePatternsOption);
+
+        // Get State File Location command
+        var getStateFileLocationCommand = new Command("get-state-file-location", "Show the location of the ignore patterns state file");
+        getStateFileLocationCommand.SetHandler(async () =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var result = await client.CallToolAsync("get_state_file_location");
+                var response = JsonSerializer.Deserialize<StateFileLocationResponse>(result.Content[0].Text);
+                await Console.Out.WriteLineAsync($"State file location: {response!.StateFilePath}");
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        });
 
         // Get Ignore Patterns command
         var getIgnorePatternsCommand = new Command("get-ignore-patterns", "Get current ignore patterns");
@@ -392,6 +479,8 @@ class Program
         rootCommand.AddCommand(addIgnorePatternsCommand);
         rootCommand.AddCommand(getIgnorePatternsCommand);
         rootCommand.AddCommand(clearIgnorePatternsCommand);
+        rootCommand.AddCommand(removeIgnorePatternsCommand);
+        rootCommand.AddCommand(getStateFileLocationCommand);
         rootCommand.AddCommand(throwExceptionCommand);
         
         return await rootCommand.InvokeAsync(args);
@@ -402,5 +491,23 @@ class Program
         public string[] DefaultPatterns { get; set; } = [];
         public string[] UserPatterns { get; set; } = [];
         public string[] AllPatterns { get; set; } = [];
+    }
+
+    private class AddIgnorePatternsResponse : IgnorePatternsResponse
+    {
+        public string[] ValidPatternsAdded { get; set; } = [];
+        public string[] InvalidPatterns { get; set; } = [];
+    }
+
+    private class RemoveIgnorePatternsResponse : IgnorePatternsResponse
+    {
+        public string[] RemovedPatterns { get; set; } = [];
+        public string[] NotFoundPatterns { get; set; } = [];
+        public string[] DefaultPatternsSkipped { get; set; } = [];
+    }
+
+    private class StateFileLocationResponse
+    {
+        public string StateFilePath { get; set; } = "";
     }
 }
