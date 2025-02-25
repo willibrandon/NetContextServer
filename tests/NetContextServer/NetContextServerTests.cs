@@ -472,7 +472,20 @@ namespace TestProject
             // 2. Content should not have excessive blank lines
             var lines = content.Split('\n');
             var blankLineCount = lines.Count(l => string.IsNullOrWhiteSpace(l));
-            Assert.True(blankLineCount < lines.Length / 3, "Content should not have excessive blank lines");
+            var blankLinePercentage = (double)blankLineCount / lines.Length;
+            
+            // Output diagnostic information
+            Console.WriteLine($"Content length: {content.Length}");
+            Console.WriteLine($"Total lines: {lines.Length}");
+            Console.WriteLine($"Blank lines: {blankLineCount}");
+            Console.WriteLine($"Blank line percentage: {blankLinePercentage:P}");
+            Console.WriteLine($"Threshold: {1.0/3:P}");
+            Console.WriteLine($"Content: {content}");
+            
+            // Modified assertion to handle edge cases where there are very few lines
+            // If there are no blank lines, the test should pass regardless of total line count
+            Assert.True(blankLineCount == 0 || blankLineCount < Math.Max(1, lines.Length / 3), 
+                $"Content should not have excessive blank lines. Found {blankLineCount} blank lines out of {lines.Length} total lines ({blankLinePercentage:P})");
             
             // 3. Check that parent scope is provided
             Assert.NotEmpty(item["ParentScope"].ToString());
