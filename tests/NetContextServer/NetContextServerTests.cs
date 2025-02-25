@@ -537,12 +537,138 @@ namespace TestProject
         Assert.True(hasRelevantResult, "Results should include relevant content matching the query");
     }
 
+    [Fact]
+    [Trait("Category", "AI_Generated")]
+    public async Task ListFiles_ShouldFindAllNetFileTypes()
+    {
+        // Create test files of different types
+        var testFiles = new Dictionary<string, string>
+        {
+            { "Test.cs", "public class Test { }" },
+            { "Test.vb", "Public Class Test\nEnd Class" },
+            { "Test.fs", "module Test" },
+            { "Test.fsx", "let x = 42" },
+            { "Test.fsi", "module Test" },
+            { "Test.cshtml", "@page" },
+            { "Test.vbhtml", "@Code End Code" },
+            { "Test.razor", "@page \"/test\"" },
+            { "NotADotNetFile.txt", "Hello" }
+        };
+
+        foreach (var file in testFiles)
+        {
+            File.WriteAllText(Path.Combine(_testDir, file.Key), file.Value);
+        }
+
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", _testDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(files);
+        // Should find all .NET files but not the .txt file
+        Assert.Equal(8, files!.Length);
+        Assert.Contains(files, f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".vb", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fsi", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".vbhtml", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".razor", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(files, f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    [Trait("Category", "AI_Generated")]
+    public async Task SearchCode_ShouldSearchAllNetFileTypes()
+    {
+        // Create test files with a common searchable term
+        var testFiles = new Dictionary<string, string>
+        {
+            { "Test.cs", "public class SearchableTest { }" },
+            { "Test.vb", "Public Class SearchableTest\nEnd Class" },
+            { "Test.fs", "type SearchableTest = class end" },
+            { "Test.fsx", "// SearchableTest script" },
+            { "Test.fsi", "type SearchableTest = class end" },
+            { "Test.cshtml", "@* SearchableTest view *@" },
+            { "Test.vbhtml", "@* SearchableTest view *@" },
+            { "Test.razor", "@* SearchableTest component *@" },
+            { "NotADotNetFile.txt", "SearchableTest in txt file" }
+        };
+
+        foreach (var file in testFiles)
+        {
+            File.WriteAllText(Path.Combine(_testDir, file.Key), file.Value);
+        }
+
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("search_code", new Dictionary<string, object> { { "searchText", "SearchableTest" } });
+        var matches = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(matches);
+        // Should find "SearchableTest" in all .NET files but not in the .txt file
+        Assert.Equal(8, matches!.Count(m => m.Contains("SearchableTest")));
+        Assert.Contains(matches, m => m.Contains(".cs"));
+        Assert.Contains(matches, m => m.Contains(".vb"));
+        Assert.Contains(matches, m => m.Contains(".fs"));
+        Assert.Contains(matches, m => m.Contains(".fsx"));
+        Assert.Contains(matches, m => m.Contains(".fsi"));
+        Assert.Contains(matches, m => m.Contains(".cshtml"));
+        Assert.Contains(matches, m => m.Contains(".vbhtml"));
+        Assert.Contains(matches, m => m.Contains(".razor"));
+        Assert.DoesNotContain(matches, m => m.Contains(".txt"));
+    }
+
+    [Fact]
+    [Trait("Category", "AI_Generated")]
+    public async Task ListSourceFiles_ShouldFindAllNetSourceFiles()
+    {
+        // Create test files in a project directory structure
+        var projectDir = Path.Combine(_testDir, "TestProject");
+        Directory.CreateDirectory(projectDir);
+        
+        var testFiles = new Dictionary<string, string>
+        {
+            { "Test.cs", "public class Test { }" },
+            { "Test.vb", "Public Class Test\nEnd Class" },
+            { "Test.fs", "module Test" },
+            { "Test.fsx", "let x = 42" },
+            { "Test.fsi", "module Test" },
+            { "Test.cshtml", "@page" },
+            { "Test.vbhtml", "@Code End Code" },
+            { "Test.razor", "@page \"/test\"" },
+            { "NotADotNetFile.txt", "Hello" }
+        };
+
+        foreach (var file in testFiles)
+        {
+            File.WriteAllText(Path.Combine(projectDir, file.Key), file.Value);
+        }
+
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", projectDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(files);
+        // Should find all .NET files but not the .txt file
+        Assert.Equal(8, files!.Length);
+        Assert.Contains(files, f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".vb", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fsi", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".vbhtml", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".razor", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(files, f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase));
+    }
+
     public void Dispose()
     {
         // Reset the base directory
         try
         {
-            NetConextServer.SetBaseDirectory(Directory.GetCurrentDirectory());
+            NetContextServer.SetBaseDirectory(Directory.GetCurrentDirectory());
         }
         catch
         {

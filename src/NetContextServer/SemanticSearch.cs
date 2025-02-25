@@ -332,7 +332,7 @@ public class SemanticSearch
     private static bool ShouldIgnoreFile(string filePath)
     {
         // Get user patterns from Program.cs
-        var userPatternsJson = NetConextServer.GetIgnorePatterns();
+        var userPatternsJson = NetContextServer.GetIgnorePatterns();
         var userPatterns = JsonSerializer.Deserialize<string[]>(userPatternsJson) ?? [];
         var allPatterns = _defaultIgnorePatterns.Concat(userPatterns);
 
