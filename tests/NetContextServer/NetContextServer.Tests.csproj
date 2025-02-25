@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MCPSharp.Example\NetContextServer.csproj" />
+    <ProjectReference Include="..\..\src\NetContextServer\NetContextServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
