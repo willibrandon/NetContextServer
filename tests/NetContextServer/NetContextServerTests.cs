@@ -302,6 +302,30 @@ public class NetContextServerTests : IDisposable
         Assert.Contains("Error: This file type is restricted", result.Content[0].Text);
     }
 
+    [Fact]
+    public async Task SemanticSearch_WithValidCredentials_ReturnsResults()
+    {
+        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
+        
+        Assert.NotNull(endpoint);
+        Assert.NotNull(key);
+
+        // Create a test file with some content
+        File.WriteAllText(_testCsFilePath, "public class Test { public void HandleAuthentication() { } }");
+        
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("semantic_search", new Dictionary<string, object> 
+        { 
+            { "query", "authentication method" },
+            { "topK", 1 }
+        });
+
+        var response = JsonSerializer.Deserialize<Dictionary<string, object>>(result.Content[0].Text);
+        Assert.NotNull(response);
+        Assert.NotNull(response["Results"]);
+    }
+
     public void Dispose()
     {
         // Reset the base directory
