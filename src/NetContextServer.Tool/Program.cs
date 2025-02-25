@@ -1,5 +1,5 @@
 ﻿using NetContextServer.Core.Indexer;
-using NetContextServer.Core.MCP;
+using NetContextServer.Tool.Mcp;
 
 namespace NetContextServer.Tool;
 
@@ -24,6 +24,7 @@ internal class Program
             // Initialize the tool classes with the project index
             ProjectTools.Initialize(index);
             FileTools.Initialize(index);
+            SymbolTools.Initialize(index);
             
             // Create and start the MCP server
             var server = new DotNetMcpServer(solutionPath, serverName, serverVersion);

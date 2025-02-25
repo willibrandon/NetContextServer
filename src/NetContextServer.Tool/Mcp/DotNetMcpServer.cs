@@ -1,7 +1,7 @@
 using MCPSharp;
 using NetContextServer.Core.Indexer;
 
-namespace NetContextServer.Core.MCP;
+namespace NetContextServer.Tool.Mcp;
 
 /// <summary>
 /// Represents a .NET MCP server that provides tools for working with .NET codebases.
@@ -35,6 +35,7 @@ public class DotNetMcpServer(string solutionPath, string serverName = "NetContex
             // Initialize the tool classes with the project index
             ProjectTools.Initialize(index);
             FileTools.Initialize(index);
+            SymbolTools.Initialize(index);
             
             // Start the MCP server
             await MCPServer.StartAsync(_serverName, _serverVersion);

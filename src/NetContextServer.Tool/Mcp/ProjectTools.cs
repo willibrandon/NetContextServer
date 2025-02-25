@@ -1,7 +1,7 @@
 using MCPSharp;
 using NetContextServer.Core.Models;
 
-namespace NetContextServer.Core.MCP;
+namespace NetContextServer.Tool.Mcp;
 
 /// <summary>
 /// Provides MCP tools for working with .NET projects and solutions.

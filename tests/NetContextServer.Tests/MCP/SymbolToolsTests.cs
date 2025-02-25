@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using NetContextServer.Core.MCP;
+using NetContextServer.Tool.Mcp;
 using NetContextServer.Core.Models;
 using Xunit;
 

@@ -1,5 +1,5 @@
-using NetContextServer.Core.MCP;
 using NetContextServer.Core.Models;
+using NetContextServer.Tool.Mcp;
 
 namespace NetContextServer.Tests.MCP;
 

@@ -1,5 +1,6 @@
-using NetContextServer.Core.MCP;
+using NetContextServer.Tool.Mcp;
 using NetContextServer.Core.Models;
+using Xunit;
 
 namespace NetContextServer.Tests.MCP;
 

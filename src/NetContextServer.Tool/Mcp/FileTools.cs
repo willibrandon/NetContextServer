@@ -1,7 +1,7 @@
 using MCPSharp;
 using NetContextServer.Core.Models;
 
-namespace NetContextServer.Core.MCP;
+namespace NetContextServer.Tool.Mcp;
 
 /// <summary>
 /// Provides MCP tools for working with source files in a .NET solution.
@@ -97,8 +97,8 @@ public static class FileTools
                         results.Add(new CodeSearchResult
                         {
                             FilePath = file,
-                            LineNumber = i + 1, // 1-based line numbers
-                            LineText = lines[i]
+                            LineNumber = i + 1,
+                            LineText = lines[i].Trim()
                         });
                     }
                 }
@@ -113,24 +113,18 @@ public static class FileTools
         return results;
     }
 
-    /// <summary>
-    /// Checks if a file is within the solution directory.
-    /// </summary>
-    /// <param name="filePath">The path to check.</param>
-    /// <returns>True if the file is within the solution directory; otherwise, false.</returns>
-    private static bool IsFileInSolutionDirectory(string filePath)
-    {
-        var normalizedFilePath = Path.GetFullPath(filePath);
-        var normalizedSolutionRoot = Path.GetFullPath(_index!.SolutionRoot);
-        
-        return normalizedFilePath.StartsWith(normalizedSolutionRoot, StringComparison.OrdinalIgnoreCase);
-    }
-    
     private static void EnsureInitialized()
     {
         if (_index == null)
         {
             throw new InvalidOperationException("FileTools has not been initialized. Call Initialize() first.");
         }
+    }
+
+    private static bool IsFileInSolutionDirectory(string filePath)
+    {
+        EnsureInitialized();
+        var solutionRoot = _index!.SolutionRoot;
+        return Path.GetFullPath(filePath).StartsWith(Path.GetFullPath(solutionRoot));
     }
 } 

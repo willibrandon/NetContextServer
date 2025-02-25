@@ -3,7 +3,7 @@ using NetContextServer.Core.Models;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace NetContextServer.Core.MCP;
+namespace NetContextServer.Tool.Mcp;
 
 /// <summary>
 /// Provides MCP tools for working with code symbols and documentation.
@@ -12,8 +12,8 @@ namespace NetContextServer.Core.MCP;
 public static class SymbolTools
 {
     private static ProjectIndex? _index;
-    private static readonly Regex SymbolRegex = new(@"(public|internal|private|protected)\s+(static\s+)?(class|interface|struct|enum|record|delegate|abstract\s+class)\s+(?<name>\w+)", RegexOptions.Compiled);
-    private static readonly Regex MethodRegex = new(@"(public|internal|private|protected)?\s*(static\s+)?(async\s+)?([\w<>[\],\s]+)\s+(?<name>\w+)\s*\(", RegexOptions.Compiled);
+    private static readonly Regex SymbolRegex = new(@"(public|internal|private|protected)\s+(static\s+)?(class|interface|struct|enum|record|delegate|abstract\s+class)\s+(?<n>\w+)", RegexOptions.Compiled);
+    private static readonly Regex MethodRegex = new(@"(public|internal|private|protected)?\s*(static\s+)?(async\s+)?([\w<>[\],\s]+)\s+(?<n>\w+)\s*\(", RegexOptions.Compiled);
 
     /// <summary>
     /// Initializes the SymbolTools with the specified project index.
@@ -68,45 +68,63 @@ public static class SymbolTools
         if (string.IsNullOrWhiteSpace(symbolName))
             throw new ArgumentException("Symbol name cannot be empty", nameof(symbolName));
 
-        // Search for the symbol in all source files
         var allSourceFiles = _index!.FilesByProject.Values.SelectMany(files => files).ToList();
-        
+
         foreach (var file in allSourceFiles)
         {
             try
             {
                 var lines = File.ReadAllLines(file);
-                
-                // Look for the symbol in the file
+                var docBuilder = new StringBuilder();
+                var inDocComment = false;
+
                 for (int i = 0; i < lines.Length; i++)
                 {
-                    // Check if this line contains the symbol definition
-                    if (IsSymbolDefinition(lines[i], symbolName, out var symbolType))
+                    var line = lines[i].Trim();
+
+                    // Check for XML doc comments
+                    if (line.StartsWith("///"))
                     {
-                        // Found the symbol, now extract the documentation
-                        var docLines = ExtractDocumentation(lines, i);
-                        
-                        if (!string.IsNullOrEmpty(docLines))
+                        inDocComment = true;
+                        docBuilder.AppendLine(line.TrimStart('/').Trim());
+                        continue;
+                    }
+
+                    if (inDocComment)
+                    {
+                        // Check if this line contains the symbol definition
+                        string symbolType = string.Empty;
+                        if (IsSymbolDefinition(line, symbolName, out symbolType))
                         {
                             return new SymbolDocumentation
                             {
                                 SymbolName = symbolName,
                                 FilePath = file,
-                                LineNumber = i + 1, // 1-based line numbers
-                                Documentation = docLines,
+                                LineNumber = i + 1,
+                                Documentation = docBuilder.ToString().Trim(),
                                 SymbolType = symbolType
                             };
                         }
-                        
-                        // If no documentation found, return just the symbol location
-                        return new SymbolDocumentation
+
+                        // If we hit a non-doc line without finding the symbol, reset and continue searching
+                        inDocComment = false;
+                        docBuilder.Clear();
+                    }
+                    else
+                    {
+                        // Check for symbol without doc comments
+                        string symbolType = string.Empty;
+                        if (IsSymbolDefinition(line, symbolName, out symbolType))
                         {
-                            SymbolName = symbolName,
-                            FilePath = file,
-                            LineNumber = i + 1,
-                            Documentation = "No documentation found.",
-                            SymbolType = symbolType
-                        };
+                            return new SymbolDocumentation
+                            {
+                                SymbolName = symbolName,
+                                FilePath = file,
+                                LineNumber = i + 1,
+                                Documentation = string.Empty,
+                                SymbolType = symbolType
+                            };
+                        }
                     }
                 }
             }
@@ -119,63 +137,6 @@ public static class SymbolTools
 
         // Symbol not found
         return null;
-    }
-
-    /// <summary>
-    /// Checks if a line contains a symbol definition.
-    /// </summary>
-    /// <param name="line">The line to check.</param>
-    /// <param name="symbolName">The name of the symbol to look for.</param>
-    /// <param name="symbolType">The type of the symbol if found.</param>
-    /// <returns>True if the line contains the symbol definition; otherwise, false.</returns>
-    private static bool IsSymbolDefinition(string line, string symbolName, out string symbolType)
-    {
-        symbolType = string.Empty;
-        
-        // Check for class, interface, struct, enum, record definitions
-        var match = SymbolRegex.Match(line);
-        if (match.Success && match.Groups["name"].Value == symbolName)
-        {
-            symbolType = "type";
-            return true;
-        }
-        
-        // Check for method definitions
-        match = MethodRegex.Match(line);
-        if (match.Success && match.Groups["name"].Value == symbolName)
-        {
-            symbolType = "method";
-            return true;
-        }
-        
-        // Simple fallback: check if the symbol name is in the line
-        // This is less accurate but might catch some cases
-        return line.Contains($" {symbolName} ") || line.Contains($" {symbolName}(");
-    }
-
-    /// <summary>
-    /// Extracts documentation comments from lines above a symbol definition.
-    /// </summary>
-    /// <param name="lines">The lines of the file.</param>
-    /// <param name="symbolLineIndex">The index of the line containing the symbol definition.</param>
-    /// <returns>The documentation comments, or an empty string if none found.</returns>
-    private static string ExtractDocumentation(string[] lines, int symbolLineIndex)
-    {
-        var docBuilder = new StringBuilder();
-        var currentLineIndex = symbolLineIndex - 1;
-        
-        // Look for XML documentation comments (///) above the symbol
-        while (currentLineIndex >= 0 && lines[currentLineIndex].Trim().StartsWith("///"))
-        {
-            // Add the documentation line (removing the ///)
-            var docLine = lines[currentLineIndex].Trim();
-            docLine = docLine.StartsWith("/// ") ? docLine[4..] : docLine[3..];
-            docBuilder.Insert(0, docLine + Environment.NewLine);
-            
-            currentLineIndex--;
-        }
-        
-        return docBuilder.ToString().Trim();
     }
 
     /// <summary>
@@ -202,14 +163,14 @@ public static class SymbolTools
                     var match = SymbolRegex.Match(line);
                     if (match.Success)
                     {
-                        symbols.Add(match.Groups["name"].Value);
+                        symbols.Add(match.Groups["n"].Value);
                     }
                     
                     // Extract method names
                     match = MethodRegex.Match(line);
                     if (match.Success)
                     {
-                        symbols.Add(match.Groups["name"].Value);
+                        symbols.Add(match.Groups["n"].Value);
                     }
                 }
             }
@@ -229,5 +190,30 @@ public static class SymbolTools
         {
             throw new InvalidOperationException("SymbolTools has not been initialized. Call Initialize() first.");
         }
+    }
+
+    private static bool IsSymbolDefinition(string line, string symbolName, out string symbolType)
+    {
+        symbolType = string.Empty;
+        
+        // Check for class, interface, struct, enum, record definitions
+        var match = SymbolRegex.Match(line);
+        if (match.Success && match.Groups["n"].Value == symbolName)
+        {
+            symbolType = "type";
+            return true;
+        }
+        
+        // Check for method definitions
+        match = MethodRegex.Match(line);
+        if (match.Success && match.Groups["n"].Value == symbolName)
+        {
+            symbolType = "method";
+            return true;
+        }
+        
+        // Simple fallback: check if the symbol name is in the line
+        // This is less accurate but might catch some cases
+        return line.Contains($" {symbolName} ") || line.Contains($" {symbolName}(");
     }
 } 
