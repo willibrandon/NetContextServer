@@ -12,6 +12,7 @@ public class ImplementationTests : IDisposable
     public void Dispose()
     {
         client.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     [Fact]
