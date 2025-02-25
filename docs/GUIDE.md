@@ -4,7 +4,7 @@ Below is a **step-by-step, chunked** implementation guide for **NetContextServer
 
 # Chunk 1: Project Setup & Environment
 
-### 1.1 Objective
+## 1.1 Objective
 Set up the .NET 9 project and initialize a repository structure so that further development tasks have a clean foundation.
 
 ### 1.2 Tasks
@@ -69,7 +69,7 @@ Set up the .NET 9 project and initialize a repository structure so that further 
 
 # Chunk 2: Basic Project Indexer (MVP)
 
-### 2.1 Objective
+## 2.1 Objective
 Implement a minimal file-based indexer that scans a .sln directory to list projects and `.cs` files. This sets the stage for exposing “context” about the code.
 
 ### 2.2 Tasks
@@ -148,7 +148,7 @@ Implement a minimal file-based indexer that scans a .sln directory to list proje
 
 # Chunk 3: MCP Tools & Library Integration
 
-### 3.1 Objective
+## 3.1 Objective
 Integrate the MCP .NET library (e.g. MCPSharp) and expose your indexer data as simple “tools” (e.g., `ListProjects`, `ListFiles`).
 
 ### 3.2 Tasks
@@ -239,7 +239,7 @@ Integrate the MCP .NET library (e.g. MCPSharp) and expose your indexer data as s
 
 # Chunk 4: Additional Tools (SearchCode, OpenFile, GetDocForSymbol)
 
-### 4.1 Objective
+## 4.1 Objective
 Implement more advanced (yet still MVP-friendly) functions so the AI can retrieve code content and doc comments.
 
 ### 4.2 Tasks
@@ -323,7 +323,7 @@ Implement more advanced (yet still MVP-friendly) functions so the AI can retriev
 
 # Chunk 5: CLI & Global Tool Integration
 
-### 5.1 Objective
+## 5.1 Objective
 Create the actual CLI tool that end users will install and run as `dotnet tool`.
 
 ### 5.2 Tasks
@@ -386,7 +386,7 @@ Create the actual CLI tool that end users will install and run as `dotnet tool`.
 
 # Chunk 6: Security Defaults & Access Controls
 
-### 6.1 Objective
+## 6.1 Objective
 Refine the server to avoid accidental exposure of sensitive data. Ensure the user can configure what files/folders the server can read.
 
 ### 6.2 Tasks
@@ -419,7 +419,7 @@ Refine the server to avoid accidental exposure of sensitive data. Ensure the use
 
 # Chunk 7: Testing & QA
 
-### 7.1 Objective
+## 7.1 Objective
 Ensure the overall solution works reliably across typical usage scenarios and platforms.
 
 ### 7.2 Tasks
@@ -460,7 +460,7 @@ Ensure the overall solution works reliably across typical usage scenarios and pl
 
 # Chunk 8: Packaging & Release Preparation
 
-### 8.1 Objective
+## 8.1 Objective
 Finalize the solution’s distribution, versioning, and release artifacts.
 
 ### 8.2 Tasks
@@ -505,7 +505,7 @@ Finalize the solution’s distribution, versioning, and release artifacts.
 
 # Chunk 9: Documentation & Usage Examples
 
-### 9.1 Objective
+## 9.1 Objective
 Provide clear “how-to” docs and advanced usage examples to ensure new users quickly see the value.
 
 ### 9.2 Tasks
@@ -541,7 +541,7 @@ Provide clear “how-to” docs and advanced usage examples to ensure new users 
 
 # Chunk 10: Final Verification & Launch
 
-### 10.1 Objective
+## 10.1 Objective
 Perform a final review and decide if you’re ready to publish v1.0.0 to users.
 
 ### 10.2 Tasks

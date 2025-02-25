@@ -42,7 +42,7 @@ public static class ProjectTools
         EnsureInitialized();
         return _index!.FilesByProject.TryGetValue(projectPath, out var files)
             ? files
-            : new List<string>();
+            : [];
     }
 
     /// <summary>

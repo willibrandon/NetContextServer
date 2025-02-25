@@ -54,7 +54,7 @@ public static class ProjectIndexer
     /// <returns>A list of all source file paths.</returns>
     public static List<string> GetAllSourceFiles(ProjectIndex index)
     {
-        return index.FilesByProject.Values.SelectMany(files => files).ToList();
+        return [.. index.FilesByProject.Values.SelectMany(files => files)];
     }
 
     /// <summary>
@@ -70,7 +70,7 @@ public static class ProjectIndexer
 
         if (filePath.StartsWith(index.SolutionRoot, StringComparison.OrdinalIgnoreCase))
         {
-            var relativePath = filePath.Substring(index.SolutionRoot.Length);
+            var relativePath = filePath[index.SolutionRoot.Length..];
             return relativePath.TrimStart(Path.DirectorySeparatorChar);
         }
 

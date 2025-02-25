@@ -79,7 +79,7 @@ public class ProjectIndexerTests
         Assert.Equal(Path.Combine("src", "NetContextServer.Core", "Class1.cs"), relativePath);
     }
 
-    private string GetSolutionRootPath()
+    private static string GetSolutionRootPath()
     {
         // Navigate up from the test assembly location to find the solution root
         var currentDirectory = Directory.GetCurrentDirectory();

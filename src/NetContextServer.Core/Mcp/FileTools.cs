@@ -64,7 +64,7 @@ public static class FileTools
         var content = File.ReadAllText(filePath);
         if (content.Length > MaxFileSize)
         {
-            content = content.Substring(0, MaxFileSize) + "\n... [Truncated]";
+            content = content[..MaxFileSize] + "\n... [Truncated]";
         }
         return content;
     }

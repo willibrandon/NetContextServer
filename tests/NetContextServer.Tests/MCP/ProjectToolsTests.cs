@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using NetContextServer.Core.MCP;
 using NetContextServer.Core.Models;
-using Xunit;
 
 namespace NetContextServer.Tests.MCP;
 
@@ -16,7 +12,7 @@ public class ProjectToolsTests
         // Arrange
         var index = new ProjectIndex
         {
-            ProjectPaths = new List<string> { "Project1.csproj", "Project2.csproj" }
+            ProjectPaths = ["Project1.csproj", "Project2.csproj"]
         };
         ProjectTools.Initialize(index);
 

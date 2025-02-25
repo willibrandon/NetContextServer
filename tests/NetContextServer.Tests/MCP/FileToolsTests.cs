@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using NetContextServer.Core.MCP;
 using NetContextServer.Core.Models;
-using Xunit;
 
 namespace NetContextServer.Tests.MCP;
 
@@ -21,8 +17,8 @@ public class FileToolsTests
         {
             // Create a test file with content
             var filePath = Path.Combine(tempDir, "TestFile.cs");
-            File.WriteAllLines(filePath, new[]
-            {
+            File.WriteAllLines(filePath,
+            [
                 "using System;",
                 "namespace Test {",
                 "    public class TestClass {",
@@ -31,7 +27,7 @@ public class FileToolsTests
                 "        }",
                 "    }",
                 "}"
-            });
+            ]);
 
             var index = new ProjectIndex
             {
@@ -71,8 +67,8 @@ public class FileToolsTests
         {
             // Create a test file with content
             var filePath = Path.Combine(tempDir, "TestFile.cs");
-            File.WriteAllLines(filePath, new[]
-            {
+            File.WriteAllLines(filePath,
+            [
                 "using System;",
                 "namespace Test {",
                 "    public class TestClass {",
@@ -81,7 +77,7 @@ public class FileToolsTests
                 "        }",
                 "    }",
                 "}"
-            });
+            ]);
 
             var index = new ProjectIndex
             {

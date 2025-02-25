@@ -6,24 +6,17 @@ namespace NetContextServer.Core.MCP;
 /// <summary>
 /// Represents a .NET MCP server that provides tools for working with .NET codebases.
 /// </summary>
-public class DotNetMcpServer
+/// <remarks>
+/// Initializes a new instance of the <see cref="DotNetMcpServer"/> class.
+/// </remarks>
+/// <param name="solutionPath">The path to the solution directory.</param>
+/// <param name="serverName">The name of the server.</param>
+/// <param name="serverVersion">The version of the server.</param>
+public class DotNetMcpServer(string solutionPath, string serverName = "NetContextServer", string serverVersion = "1.0.0")
 {
-    private readonly string _solutionPath;
-    private readonly string _serverName;
-    private readonly string _serverVersion;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DotNetMcpServer"/> class.
-    /// </summary>
-    /// <param name="solutionPath">The path to the solution directory.</param>
-    /// <param name="serverName">The name of the server.</param>
-    /// <param name="serverVersion">The version of the server.</param>
-    public DotNetMcpServer(string solutionPath, string serverName = "NetContextServer", string serverVersion = "1.0.0")
-    {
-        _solutionPath = solutionPath ?? throw new ArgumentNullException(nameof(solutionPath));
-        _serverName = serverName ?? throw new ArgumentNullException(nameof(serverName));
-        _serverVersion = serverVersion ?? throw new ArgumentNullException(nameof(serverVersion));
-    }
+    private readonly string _solutionPath = solutionPath ?? throw new ArgumentNullException(nameof(solutionPath));
+    private readonly string _serverName = serverName ?? throw new ArgumentNullException(nameof(serverName));
+    private readonly string _serverVersion = serverVersion ?? throw new ArgumentNullException(nameof(serverVersion));
 
     /// <summary>
     /// Starts the MCP server using standard input/output for communication.
@@ -50,7 +43,7 @@ public class DotNetMcpServer
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Error starting MCP server: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error starting MCP server: {ex.Message}");
             throw;
         }
     }
