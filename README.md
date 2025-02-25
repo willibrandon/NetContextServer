@@ -15,7 +15,7 @@ A .NET Codebase Context MCP Server that provides AI assistants with access to yo
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/NetContextServer.git
+git clone https://github.com/willibrandon/NetContextServer.git
 cd NetContextServer
 ```
 
