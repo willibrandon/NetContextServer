@@ -6,136 +6,185 @@ namespace NetContextServer;
 
 public class CodeSnippet
 {
-    public string FilePath { get; set; } = "";
-    public int StartLine { get; set; }
-    public int EndLine { get; set; }
-    public string Content { get; set; } = "";
-    public float[] Embedding { get; set; } = [];
-}
-
-public class SemanticSearchResult
-{
-    public string FilePath { get; set; } = "";
-    public int StartLine { get; set; }
-    public int EndLine { get; set; }
-    public string Content { get; set; } = "";
-    public float Score { get; set; }
+    public required string FilePath { get; init; }
+    public required string Content { get; init; }
+    public required int StartLine { get; init; }
+    public required int EndLine { get; init; }
+    public required ReadOnlyMemory<float> Embedding { get; init; }
 }
 
 public class SemanticSearch
 {
+    private const int CHUNK_SIZE = 1000;
+    private const int OVERLAP = 100;
     private readonly Kernel _kernel;
-    private readonly List<CodeSnippet> _snippets = [];
-    private const int CHUNK_SIZE = 10; // Number of lines per chunk
-    private const int OVERLAP = 2; // Number of lines to overlap between chunks
+    private readonly Dictionary<string, CodeSnippet> _cache = new();
+    private readonly HashSet<string> _indexedFiles = new();
+    private static readonly string[] _defaultIgnorePatterns = new[] 
+    {
+        "**/obj/**",
+        "**/bin/**",
+        "**/*.generated.cs",
+        "**/*.designer.cs",
+        "**/*.g.cs",
+        "**/*.AssemblyInfo.cs"
+    };
 
     public SemanticSearch()
     {
+        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
+
+        if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key))
+        {
+            throw new InvalidOperationException("Azure OpenAI credentials not found in environment variables.");
+        }
+
         var builder = Kernel.CreateBuilder();
-#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0010
         builder.AddAzureOpenAITextEmbeddingGeneration(
             "text-embedding-ada-002",
-            Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? "",
-            Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? ""
+            endpoint!,
+            key!
         );
-#pragma warning restore SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore SKEXP0010
         _kernel = builder.Build();
     }
 
     public async Task IndexFilesAsync(IEnumerable<string> filePaths)
     {
+#pragma warning disable SKEXP0001
+        var service = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+#pragma warning restore SKEXP0001
+
         foreach (var filePath in filePaths)
         {
-            if (!File.Exists(filePath)) continue;
+            if (_indexedFiles.Contains(filePath) || ShouldIgnoreFile(filePath))
+                continue;
 
-            var lines = await File.ReadAllLinesAsync(filePath);
-            var chunks = ChunkCode(lines);
-
-            for (int i = 0; i < chunks.Count; i++)
+            try
             {
-                var chunk = chunks[i];
-                var embedding = await GetEmbeddingAsync(chunk.Content);
-                
-                _snippets.Add(new CodeSnippet
+                var content = await File.ReadAllTextAsync(filePath);
+                var chunks = ChunkCode(content);
+                var lineNumbers = GetLineNumbers(content);
+
+                for (int i = 0; i < chunks.Count; i++)
                 {
-                    FilePath = filePath,
-                    StartLine = chunk.StartLine,
-                    EndLine = chunk.EndLine,
-                    Content = chunk.Content,
-                    Embedding = embedding
-                });
+                    var chunk = chunks[i];
+                    if (!IsMeaningfulCode(chunk))
+                        continue;
+
+                    var startLine = lineNumbers[i * CHUNK_SIZE];
+                    var endLine = lineNumbers[Math.Min((i + 1) * CHUNK_SIZE - 1, lineNumbers.Length - 1)];
+                    
+                    var embedding = await service.GenerateEmbeddingAsync(chunk);
+                    var key = $"{filePath}:{startLine}:{endLine}";
+                    
+                    _cache[key] = new CodeSnippet
+                    {
+                        FilePath = filePath,
+                        Content = chunk,
+                        StartLine = startLine,
+                        EndLine = endLine,
+                        Embedding = embedding
+                    };
+                }
+                _indexedFiles.Add(filePath);
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error indexing {filePath}: {ex.Message}");
             }
         }
     }
 
-    public async Task<List<SemanticSearchResult>> SearchAsync(string query, int topK = 5)
+    public async Task<IEnumerable<(CodeSnippet Snippet, double Score)>> SearchAsync(string query, int topK = 5)
     {
-        var queryEmbedding = await GetEmbeddingAsync(query);
-        
-        var results = _snippets
-            .Select(snippet => new SemanticSearchResult
-            {
-                FilePath = snippet.FilePath,
-                StartLine = snippet.StartLine,
-                EndLine = snippet.EndLine,
-                Content = snippet.Content,
-                Score = CosineSimilarity(queryEmbedding, snippet.Embedding)
-            })
-            .OrderByDescending(r => r.Score)
-            .Take(topK)
-            .ToList();
+#pragma warning disable SKEXP0001
+        var service = _kernel.GetRequiredService<ITextEmbeddingGenerationService>();
+#pragma warning restore SKEXP0001
+        var queryEmbedding = await service.GenerateEmbeddingAsync(query);
 
-        return results;
+        return _cache.Values
+            .Select(snippet => (
+                Snippet: snippet,
+                Score: CosineSimilarity(queryEmbedding, snippet.Embedding)
+            ))
+            .OrderByDescending(x => x.Score)
+            .Take(topK);
     }
 
-    private async Task<float[]> GetEmbeddingAsync(string text)
+    private bool ShouldIgnoreFile(string filePath)
     {
-#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        var embedding = await _kernel.GetRequiredService<ITextEmbeddingGenerationService>()
-            .GenerateEmbeddingAsync(text);
-#pragma warning restore SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        return embedding.ToArray();
-    }
+        // Get user patterns from Program.cs
+        var userPatterns = NetConextServer.GetIgnorePatterns();
+        var allPatterns = _defaultIgnorePatterns.Concat(userPatterns);
 
-    private float CosineSimilarity(float[] a, float[] b)
-    {
-        float dotProduct = 0;
-        float normA = 0;
-        float normB = 0;
-        
-        for (int i = 0; i < a.Length; i++)
+        foreach (var pattern in allPatterns)
         {
-            dotProduct += a[i] * b[i];
-            normA += a[i] * a[i];
-            normB += b[i] * b[i];
+            var regex = WildcardToRegex(pattern);
+            if (Regex.IsMatch(filePath, regex, RegexOptions.IgnoreCase))
+                return true;
         }
-        
-        return dotProduct / (float)(Math.Sqrt(normA) * Math.Sqrt(normB));
+        return false;
     }
 
-    private List<(int StartLine, int EndLine, string Content)> ChunkCode(string[] lines)
+    private static string WildcardToRegex(string pattern)
     {
-        var chunks = new List<(int StartLine, int EndLine, string Content)>();
+        return "^" + Regex.Escape(pattern)
+            .Replace("\\*\\*", ".*")
+            .Replace("\\*", "[^/\\\\]*")
+            .Replace("\\?", ".") + "$";
+    }
+
+    private static List<string> ChunkCode(string content)
+    {
+        var chunks = new List<string>();
+        var lines = content.Split('\n');
         
         for (int i = 0; i < lines.Length; i += CHUNK_SIZE - OVERLAP)
         {
-            var endLine = Math.Min(i + CHUNK_SIZE, lines.Length);
-            var chunk = string.Join("\n", lines[i..endLine]);
-            
-            // Skip chunks that are just whitespace or comments
-            if (string.IsNullOrWhiteSpace(chunk) || IsOnlyComments(chunk))
-                continue;
-                
-            chunks.Add((i + 1, endLine, chunk));
+            var chunkLines = lines.Skip(i).Take(CHUNK_SIZE).ToList();
+            chunks.Add(string.Join("\n", chunkLines));
         }
         
         return chunks;
     }
 
-    private bool IsOnlyComments(string text)
+    private static int[] GetLineNumbers(string content)
     {
-        // Remove C# comments and check if anything meaningful remains
-        var withoutComments = Regex.Replace(text, @"(//.*|/\*[\s\S]*?\*/)", "");
-        return string.IsNullOrWhiteSpace(withoutComments);
+        var lineCount = content.Count(c => c == '\n') + 1;
+        return Enumerable.Range(1, lineCount).ToArray();
+    }
+
+    private static bool IsMeaningfulCode(string chunk)
+    {
+        // Ignore chunks that are mostly whitespace, comments, or very short
+        var meaningfulLines = chunk.Split('\n')
+            .Where(line => !string.IsNullOrWhiteSpace(line))
+            .Where(line => !line.TrimStart().StartsWith("//"))
+            .Where(line => !line.TrimStart().StartsWith("/*"))
+            .Where(line => !line.TrimStart().StartsWith("*"))
+            .Count();
+
+        return meaningfulLines >= 3;
+    }
+
+    private static double CosineSimilarity(ReadOnlyMemory<float> a, ReadOnlyMemory<float> b)
+    {
+        var aSpan = a.Span;
+        var bSpan = b.Span;
+        var dotProduct = 0.0;
+        var normA = 0.0;
+        var normB = 0.0;
+
+        for (int i = 0; i < aSpan.Length; i++)
+        {
+            dotProduct += aSpan[i] * bSpan[i];
+            normA += aSpan[i] * aSpan[i];
+            normB += bSpan[i] * bSpan[i];
+        }
+
+        return dotProduct / (Math.Sqrt(normA) * Math.Sqrt(normB));
     }
 } 

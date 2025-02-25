@@ -488,7 +488,7 @@ class Program
                 foreach (var match in response.Results)
                 {
                     await Console.Out.WriteLineAsync($"File: {match.FilePath}");
-                    await Console.Out.WriteLineAsync($"Lines {match.StartLine}-{match.EndLine} (Score: {match.Score:F3})");
+                    await Console.Out.WriteLineAsync($"Lines {match.StartLine}-{match.EndLine} (Score: {match.Score}%)");
                     await Console.Out.WriteLineAsync("Content:");
                     await Console.Out.WriteLineAsync(match.Content);
                     await Console.Out.WriteLineAsync(new string('-', 80));

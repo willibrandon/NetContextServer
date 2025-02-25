@@ -131,16 +131,10 @@ namespace NetContextServer
         /// Get current ignore patterns
         /// </summary>
         [McpFunction("get_ignore_patterns", "Get current ignore patterns")]
-        public static string GetIgnorePatterns()
+        public static string[] GetIgnorePatterns()
         {
-            LoadState(); // Reload state to ensure we have latest patterns
-            var allPatterns = GetAllPatterns().ToArray();
-            return JsonSerializer.Serialize(new
-            {
-                DefaultPatterns = DefaultIgnorePatterns.ToArray(),
-                UserPatterns = UserIgnorePatterns.ToArray(),
-                AllPatterns = allPatterns
-            });
+            LoadState();
+            return UserIgnorePatterns.ToArray();
         }
 
         /// <summary>
@@ -399,40 +393,65 @@ namespace NetContextServer
             return JsonSerializer.Serialize(sourceFiles);
         }
 
+        private static void EnsureBaseDirectorySet()
+        {
+            if (string.IsNullOrEmpty(BaseDirectory))
+            {
+                throw new InvalidOperationException("Base directory not set. Use set_base_directory first.");
+            }
+        }
+
         private static async Task EnsureIndexedAsync()
         {
-            if (_isIndexed) return;
+            if (!_isIndexed)
+            {
+                if (_semanticSearch == null)
+                {
+                    _semanticSearch = new SemanticSearch();
+                }
+                var files = Directory.GetFiles(BaseDirectory, "*.*", SearchOption.AllDirectories)
+                    .Where(f => f.EndsWith(".cs") || f.EndsWith(".fs") || f.EndsWith(".vb"));
+                await _semanticSearch.IndexFilesAsync(files);
+                _isIndexed = true;
+            }
+        }
 
-            var sourceFiles = Directory.GetFiles(BaseDirectory, "*.cs", SearchOption.AllDirectories)
-                .Concat(Directory.GetFiles(BaseDirectory, "*.vb", SearchOption.AllDirectories))
-                .Concat(Directory.GetFiles(BaseDirectory, "*.fs", SearchOption.AllDirectories))
-                .Where(f => !ShouldIgnoreFile(f))
-                .ToList();
-
-            await _semanticSearch.IndexFilesAsync(sourceFiles);
-            _isIndexed = true;
+        private static string GetRelativePath(string fullPath)
+        {
+            return Path.GetRelativePath(BaseDirectory, fullPath);
         }
 
         /// <summary>
-        /// Semantic code search using embeddings
+        /// Search code using semantic similarity
         /// </summary>
         [McpFunction("semantic_search", "Search code using semantic similarity")]
-        public static async Task<string> SemanticSearchCodeAsync([McpParameter(true)] string query, [McpParameter(false)] int topK = 5)
+        public static async Task<string> SemanticSearchAsync(
+            [McpParameter(true)] string query,
+            [McpParameter(false)] int? topK = 5)
         {
-            await EnsureIndexedAsync();
-            var results = await _semanticSearch.SearchAsync(query, topK);
-            
-            return JsonSerializer.Serialize(new
+            try
             {
-                Results = results.Select(r => new
+                EnsureBaseDirectorySet();
+                await EnsureIndexedAsync();
+
+                var results = await _semanticSearch.SearchAsync(query, topK ?? 5);
+                
+                return JsonSerializer.Serialize(new
                 {
-                    r.FilePath,
-                    r.StartLine,
-                    r.EndLine,
-                    r.Content,
-                    r.Score
-                }).ToArray()
-            });
+                    Results = results.Select(r => new
+                    {
+                        FilePath = GetRelativePath(r.Snippet.FilePath),
+                        StartLine = r.Snippet.StartLine,
+                        EndLine = r.Snippet.EndLine,
+                        Content = r.Snippet.Content.Trim(),
+                        Score = Math.Round(r.Score * 100, 1) // Convert to percentage
+                    })
+                });
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { Error = ex.Message });
+            }
         }
     }
 

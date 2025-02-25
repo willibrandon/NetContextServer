@@ -2,7 +2,7 @@
   "profiles": {
     "NetContextClient": {
       "commandName": "Project",
-      "commandLineArgs": "semantic-search --query \"Exception\" --top 10"
+      "commandLineArgs": "semantic-search --query \"test\" --top 5"
     }
   }
 }
