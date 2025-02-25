@@ -276,6 +276,8 @@ namespace NetContextServer
 
             var files = Directory.GetFiles(projectPath, "*.cs", SearchOption.TopDirectoryOnly)
                 .Where(f => !ShouldIgnoreFile(f))
+                .Select(f => f.ToLowerInvariant()) // Convert to lowercase for consistent comparison
+                .Distinct() // Remove duplicates that only differ by case
                 .ToArray();
             return JsonSerializer.Serialize(files);
         }
