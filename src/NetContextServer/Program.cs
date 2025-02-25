@@ -116,25 +116,19 @@ namespace NetContextServer
             }
 
             SaveState();
-            var allPatterns = GetAllPatterns().ToArray();
-            return JsonSerializer.Serialize(new
-            {
-                DefaultPatterns = DefaultIgnorePatterns.ToArray(),
-                UserPatterns = UserIgnorePatterns.ToArray(),
-                AllPatterns = allPatterns,
-                ValidPatternsAdded = validPatterns.ToArray(),
-                InvalidPatterns = invalidPatterns.ToArray()
-            });
+            // Return all patterns (both default and user-added)
+            return JsonSerializer.Serialize(GetAllPatterns().ToArray());
         }
 
         /// <summary>
         /// Get current ignore patterns
         /// </summary>
         [McpFunction("get_ignore_patterns", "Get current ignore patterns")]
-        public static string[] GetIgnorePatterns()
+        public static string GetIgnorePatterns()
         {
             LoadState();
-            return UserIgnorePatterns.ToArray();
+            // Return all patterns (both default and user-added)
+            return JsonSerializer.Serialize(GetAllPatterns().ToArray());
         }
 
         /// <summary>
@@ -145,13 +139,8 @@ namespace NetContextServer
         {
             UserIgnorePatterns.Clear();
             SaveState();
-            var allPatterns = GetAllPatterns().ToArray();
-            return JsonSerializer.Serialize(new
-            {
-                DefaultPatterns = DefaultIgnorePatterns.ToArray(),
-                UserPatterns = UserIgnorePatterns.ToArray(),
-                AllPatterns = allPatterns
-            });
+            // Return an empty array since we've cleared all user patterns
+            return JsonSerializer.Serialize(UserIgnorePatterns.ToArray());
         }
 
         /// <summary>

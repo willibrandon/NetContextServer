@@ -1,6 +1,7 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Embeddings;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace NetContextServer;
 
@@ -118,7 +119,8 @@ public class SemanticSearch
     private bool ShouldIgnoreFile(string filePath)
     {
         // Get user patterns from Program.cs
-        var userPatterns = NetConextServer.GetIgnorePatterns();
+        var userPatternsJson = NetConextServer.GetIgnorePatterns();
+        var userPatterns = JsonSerializer.Deserialize<string[]>(userPatternsJson) ?? Array.Empty<string>();
         var allPatterns = _defaultIgnorePatterns.Concat(userPatterns);
 
         foreach (var pattern in allPatterns)
