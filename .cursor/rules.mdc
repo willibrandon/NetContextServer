@@ -8,6 +8,8 @@ alwaysApply: false
 ## Project Overview
 This project implements a Model Context Protocol (MCP) server for .NET codebases, allowing AI assistants to access and understand .NET code on demand.
 
+## THE #1 RULE IS THAT AI COLLABORATORS ARE NOT ALLOWED TO ADD OR MODIFY NUGET PACKAGES OR VERSIONS PERIOD!
+
 ## Code Style and Conventions
 - Follow standard C# coding conventions and .NET design patterns
 - Use nullable reference types throughout the codebase

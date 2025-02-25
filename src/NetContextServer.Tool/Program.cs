@@ -1,7 +1,4 @@
 ﻿using NetContextServer.Core.Indexer;
-using System;
-using System.IO;
-using System.Linq;
 
 namespace NetContextServer.Tool;
 
