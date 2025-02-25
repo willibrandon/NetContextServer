@@ -192,8 +192,141 @@ public class SemanticSearch
 
     private static string GetParentScope(string filePath, int lineNumber)
     {
-        // Simple implementation - in a real system, you would parse the code to find the actual parent scope
-        return "Unknown";
+        try
+        {
+            if (!File.Exists(filePath))
+                return "Unknown";
+            
+            var content = File.ReadAllText(filePath);
+            var lines = content.Split('\n');
+            
+            // Get the lines before the target line to find the parent scope
+            var relevantLines = lines.Take(lineNumber).ToArray();
+            
+            List<string> scopeParts = [];
+            
+            // Process lines in reverse to find the closest parent scopes
+            for (int i = relevantLines.Length - 1; i >= 0; i--)
+            {
+                string line = relevantLines[i].TrimStart();
+                
+                // Detect namespace
+                if (line.StartsWith("namespace "))
+                {
+                    string namespaceName = ExtractName(line, "namespace");
+                    if (!string.IsNullOrEmpty(namespaceName))
+                    {
+                        scopeParts.Insert(0, namespaceName);
+                    }
+                }
+                // Detect class, interface, struct, enum
+                else if (line.Contains("class "))
+                {
+                    string className = ExtractName(line, "class");
+                    if (!string.IsNullOrEmpty(className))
+                    {
+                        scopeParts.Insert(0, className);
+                    }
+                }
+                else if (line.Contains("interface "))
+                {
+                    string interfaceName = ExtractName(line, "interface");
+                    if (!string.IsNullOrEmpty(interfaceName))
+                    {
+                        scopeParts.Insert(0, interfaceName);
+                    }
+                }
+                else if (line.Contains("struct "))
+                {
+                    string structName = ExtractName(line, "struct");
+                    if (!string.IsNullOrEmpty(structName))
+                    {
+                        scopeParts.Insert(0, structName);
+                    }
+                }
+                else if (line.Contains("enum "))
+                {
+                    string enumName = ExtractName(line, "enum");
+                    if (!string.IsNullOrEmpty(enumName))
+                    {
+                        scopeParts.Insert(0, enumName);
+                    }
+                }
+                // Detect methods
+                else if ((line.Contains("void ") || 
+                         line.Contains("async ") || 
+                         line.Contains("Task ") ||
+                         line.Contains("public ") || 
+                         line.Contains("private ") || 
+                         line.Contains("protected ") ||
+                         line.Contains("internal ")) &&
+                         line.Contains('(') && 
+                         !line.StartsWith("//") && 
+                         !line.StartsWith("/*"))
+                {
+                    string methodName = ExtractMethodName(line);
+                    if (!string.IsNullOrEmpty(methodName))
+                    {
+                        scopeParts.Insert(0, methodName);
+                        break; // We found the method, no need to look further
+                    }
+                }
+            }
+            
+            return string.Join(".", scopeParts);
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+
+    private static string ExtractName(string line, string keyword)
+    {
+        int keywordIndex = line.IndexOf(keyword + " ");
+        if (keywordIndex < 0)
+            return string.Empty;
+        
+        string afterKeyword = line[(keywordIndex + keyword.Length + 1)..].Trim();
+        
+        // Find the end of the name (at first space, opening brace, colon, or parenthesis)
+        int endIndex = afterKeyword.Length;
+        int spaceIndex = afterKeyword.IndexOf(' ');
+        int braceIndex = afterKeyword.IndexOf('{');
+        int colonIndex = afterKeyword.IndexOf(':');
+        int parenIndex = afterKeyword.IndexOf('(');
+        
+        if (spaceIndex >= 0 && spaceIndex < endIndex) endIndex = spaceIndex;
+        if (braceIndex >= 0 && braceIndex < endIndex) endIndex = braceIndex;
+        if (colonIndex >= 0 && colonIndex < endIndex) endIndex = colonIndex;
+        if (parenIndex >= 0 && parenIndex < endIndex) endIndex = parenIndex;
+        
+        if (endIndex > 0)
+        {
+            return afterKeyword[..endIndex].Trim();
+        }
+        
+        return string.Empty;
+    }
+
+    private static string ExtractMethodName(string line)
+    {
+        // Extract the method name from the line (text before the opening parenthesis)
+        int parenIndex = line.IndexOf('(');
+        if (parenIndex <= 0)
+            return string.Empty;
+        
+        string beforeParen = line[..parenIndex].Trim();
+        
+        // Find the last space before the parenthesis
+        int lastSpaceIndex = beforeParen.LastIndexOf(' ');
+        if (lastSpaceIndex >= 0 && lastSpaceIndex < beforeParen.Length - 1)
+        {
+            // Return everything after the last space
+            return beforeParen[(lastSpaceIndex + 1)..].Trim();
+        }
+        
+        return string.Empty;
     }
 
     private static bool ShouldIgnoreFile(string filePath)
