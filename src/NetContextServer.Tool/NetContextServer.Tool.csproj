@@ -6,6 +6,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    
+    <!-- Global tool configuration -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>net-context-server</ToolCommandName>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+    
+    <!-- Package metadata -->
+    <Version>1.0.0</Version>
+    <Authors>NetContextServer Team</Authors>
+    <Description>A .NET Codebase Context MCP Server for AI assistants</Description>
+    <PackageTags>dotnet;tool;mcp;ai;context</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
