@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\MCPSharp.Example\MCPSharp.Example.csproj" />
+    <ProjectReference Include="..\..\src\MCPSharp.Example\NetContextServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

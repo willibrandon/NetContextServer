@@ -1,18 +1,20 @@
 ﻿using MCPSharp;
 using System.Text.Json;
 
-await MCPServer.StartAsync("TestServer", "1.0");
+await MCPServer.StartAsync("NetConextServer", "1.0");
 
-namespace MCPSharp.Example
+namespace NetContextServer
 {
-    ///<summary>testing interface for custom .net mcp server</summary>
+    /// <summary>
+    ///  NetConextServer
+    /// </summary>
     [McpTool]
-    public class MCPDev
+    public class NetConextServer
     {
         private static string BaseDirectory { get; set; } = Directory.GetCurrentDirectory();
 
         // Static constructor to initialize the base directory
-        static MCPDev()
+        static NetConextServer()
         {
             BaseDirectory = Directory.GetCurrentDirectory();
         }
@@ -37,7 +39,6 @@ namespace MCPSharp.Example
         ///<param name="b">second number</param>
         [McpFunction("add", "add description")]
         public static string Add(int a, int b) => (a + b).ToString();
-
 
         /// <summary>
         /// Adds a complex object

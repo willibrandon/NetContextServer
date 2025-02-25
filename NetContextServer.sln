@@ -14,9 +14,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{AD892508-CF86-4AFE-B87F-08495C13A78B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCPSharp.Example", "src\MCPSharp.Example\MCPSharp.Example.csproj", "{621B4E67-E9F4-45AD-88BC-43FB00287397}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetContextServer", "src\MCPSharp.Example\NetContextServer.csproj", "{621B4E67-E9F4-45AD-88BC-43FB00287397}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MCPSharp.Test", "tests\MCPSharp.Test\MCPSharp.Test.csproj", "{1046FBC8-32BF-498F-A68C-4F052AFD7BAC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetContextServer.Tests", "tests\MCPSharp.Test\NetContextServer.Tests.csproj", "{1046FBC8-32BF-498F-A68C-4F052AFD7BAC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
