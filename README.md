@@ -1,6 +1,6 @@
 # NetContextServer
 
-A .NET Codebase Context MCP Server that provides AI assistants with access to your .NET codebase through the Model Context Protocol (MCP). This allows AI tools to understand and work with your specific codebase context.
+A .NET Codebase Context MCP Server that provides AI assistants with access to your .NET codebase through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction). This allows AI tools to understand and work with your specific codebase context.
 
 ## Features
 
@@ -152,7 +152,7 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-se
 
 ## Integration with AI Coding Tools
 
-NetContextServer implements the [Model Context Protocol (MCP)](https://docs.cursor.com/context/model-context-protocol), allowing seamless integration with AI coding assistants that support this protocol, such as:
+NetContextServer implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction), allowing seamless integration with AI coding assistants that support this protocol, such as:
 
 - **Cursor AI**: Provides your AI assistant with full context of your codebase for more accurate code generation and assistance
 - **Other MCP-compatible tools**: Any tool that implements the Model Context Protocol can connect to NetContextServer
