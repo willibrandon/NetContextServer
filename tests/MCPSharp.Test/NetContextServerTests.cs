@@ -158,6 +158,71 @@ public class NetContextServerTests : IDisposable
         Assert.True(result.Content[0].Text.Length < largeContent.Length);
     }
 
+    [Fact]
+    public async Task ListSolutions_ReturnsSolutionFiles()
+    {
+        // Create a test solution file
+        var solutionPath = Path.Combine(_testDir, "Test.sln");
+        File.WriteAllText(solutionPath, "");
+
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("list_solutions");
+        var solutions = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(solutions);
+        Assert.Contains(solutions, s => s.EndsWith(".sln"));
+    }
+
+    [Fact]
+    public async Task ListProjectsInDirectory_WithValidPath_ReturnsProjects()
+    {
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("list_projects_in_dir", new Dictionary<string, object> { { "directory", _testDir } });
+        var projects = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(projects);
+        Assert.Contains(projects, p => p.EndsWith(".csproj"));
+    }
+
+    [Fact]
+    public async Task ListProjectsInDirectory_WithInvalidPath_ReturnsError()
+    {
+        var invalidPath = Path.Combine(_testDir, "NonExistent");
+        var result = await client.CallToolAsync("list_projects_in_dir", new Dictionary<string, object> { { "directory", invalidPath } });
+        var error = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(error);
+        Assert.Contains(error, e => e.StartsWith("Error:"));
+    }
+
+    [Fact]
+    public async Task ListSourceFiles_WithValidPath_ReturnsSourceFiles()
+    {
+        // Create test source files
+        File.WriteAllText(Path.Combine(_testDir, "Test.cs"), "");
+        File.WriteAllText(Path.Combine(_testDir, "Test.vb"), "");
+        File.WriteAllText(Path.Combine(_testDir, "Test.fs"), "");
+
+        var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", _testDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(files);
+        Assert.Contains(files, f => f.EndsWith(".cs"));
+        Assert.Contains(files, f => f.EndsWith(".vb"));
+        Assert.Contains(files, f => f.EndsWith(".fs"));
+    }
+
+    [Fact]
+    public async Task ListSourceFiles_WithInvalidPath_ReturnsError()
+    {
+        var invalidPath = Path.Combine(_testDir, "NonExistent");
+        var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", invalidPath } });
+        var error = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(error);
+        Assert.Contains(error, e => e.StartsWith("Error:"));
+    }
+
     public void Dispose()
     {
         // Reset the base directory

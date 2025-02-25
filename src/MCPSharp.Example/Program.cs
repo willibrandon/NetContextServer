@@ -122,6 +122,46 @@ namespace NetContextServer
                 return $"Error reading file: {ex.Message}";
             }
         }
+
+        /// <summary>
+        /// Get all solution files in the base directory
+        /// </summary>
+        [McpFunction("list_solutions", "Lists all .sln files in the base directory")]
+        public static string ListSolutions()
+        {
+            var solutions = Directory.GetFiles(BaseDirectory, "*.sln", SearchOption.AllDirectories);
+            return JsonSerializer.Serialize(solutions);
+        }
+
+        /// <summary>
+        /// Get all project files in a solution directory
+        /// </summary>
+        [McpFunction("list_projects_in_dir", "Lists all .csproj files in a directory")]
+        public static string ListProjectsInDirectory([McpParameter(true)] string directory)
+        {
+            if (!Directory.Exists(directory))
+                return JsonSerializer.Serialize(new[] { "Error: Directory not found" });
+
+            var projects = Directory.GetFiles(directory, "*.csproj", SearchOption.AllDirectories);
+            return JsonSerializer.Serialize(projects);
+        }
+
+        /// <summary>
+        /// Get all source files in a project directory
+        /// </summary>
+        [McpFunction("list_source_files", "Lists all source files in a project directory")]
+        public static string ListSourceFiles([McpParameter(true)] string projectDir)
+        {
+            if (!Directory.Exists(projectDir))
+                return JsonSerializer.Serialize(new[] { "Error: Directory not found" });
+
+            var sourceFiles = Directory.GetFiles(projectDir, "*.cs", SearchOption.AllDirectories)
+                .Concat(Directory.GetFiles(projectDir, "*.vb", SearchOption.AllDirectories))
+                .Concat(Directory.GetFiles(projectDir, "*.fs", SearchOption.AllDirectories))
+                .ToArray();
+
+            return JsonSerializer.Serialize(sourceFiles);
+        }
     }
 
     /// <summary>
