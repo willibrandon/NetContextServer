@@ -1,21 +1,23 @@
-name: .NET CI
+name: .NET Build and Test
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
     
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 9.0.x
         
@@ -25,18 +27,18 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
       
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
-      
-    - name: Publish
-      if: github.event_name != 'pull_request'
+    - name: Make executable (Linux only)
+      if: matrix.os == 'ubuntu-latest'
       run: |
-        dotnet publish src/NetContextServer/NetContextServer.csproj -c Release -o publish/NetContextServer
-        dotnet publish src/NetContextClient/NetContextClient.csproj -c Release -o publish/NetContextClient
-        
-    - name: Upload build artifacts
-      if: github.event_name != 'pull_request'
-      uses: actions/upload-artifact@v4
-      with:
-        name: net-context-server
-        path: publish/ 
+        chmod +x src/NetContextServer/bin/Debug/net9.0/NetContextServer
+        ls -la src/NetContextServer/bin/Debug/net9.0/
+      
+    - name: Copy executable to test directory (Linux only)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        mkdir -p tests/NetContextServer/bin/Debug/net9.0/
+        cp src/NetContextServer/bin/Debug/net9.0/NetContextServer tests/NetContextServer/bin/Debug/net9.0/
+        ls -la tests/NetContextServer/bin/Debug/net9.0/
+      
+    - name: Test
+      run: dotnet test --no-build --verbosity normal 

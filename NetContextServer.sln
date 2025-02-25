@@ -5,9 +5,6 @@ VisualStudioVersion = 17.13.35818.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 	ProjectSection(SolutionItems) = preProject
-		docs\DESIGN.md = docs\DESIGN.md
-		docs\GUIDE.md = docs\GUIDE.md
-		docs\PROPOSAL.md = docs\PROPOSAL.md
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -20,6 +17,11 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetContextServer.Tests", "tests\NetContextServer\NetContextServer.Tests.csproj", "{1046FBC8-32BF-498F-A68C-4F052AFD7BAC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetContextClient", "src\NetContextClient\NetContextClient.csproj", "{68B0CED4-98B4-4724-A6F4-BBFB06B5F5F6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yaml = .github\workflows\ci.yaml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

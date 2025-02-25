@@ -45,7 +45,42 @@ public class NetContextServerTests : IDisposable
         File.WriteAllText(_testProjectPath, "<Project />");
         File.WriteAllText(_testCsFilePath, "public class Test { }");
 
-        client = new MCPClient("Test Client", "1.0.0", "NetContextServer.exe");
+        // Use platform-specific executable name
+        string executableName = GetPlatformSpecificExecutableName();
+        client = new MCPClient("Test Client", "1.0.0", executableName);
+    }
+
+    private string GetPlatformSpecificExecutableName()
+    {
+        // Check if we're running on Windows or non-Windows
+        bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
+        
+        // For Windows, use .exe extension; for Linux/macOS, don't use extension
+        string executableName = isWindows ? "NetContextServer.exe" : "NetContextServer";
+        
+        // Check if the executable exists in the current directory
+        string currentDir = Directory.GetCurrentDirectory();
+        string executablePath = Path.Combine(currentDir, executableName);
+        
+        if (File.Exists(executablePath))
+        {
+            // Use the executable in the current directory
+            return executablePath;
+        }
+        
+        // Check if the executable exists in the bin directory (relative to current directory)
+        string binDir = Path.Combine(currentDir, "bin");
+        if (Directory.Exists(binDir))
+        {
+            var executableFiles = Directory.GetFiles(binDir, executableName, SearchOption.AllDirectories);
+            if (executableFiles.Length > 0)
+            {
+                return executableFiles[0];
+            }
+        }
+        
+        // Fall back to just the executable name and let the system find it
+        return executableName;
     }
 
     [Fact]
@@ -539,7 +574,14 @@ namespace TestProject
     public void Dispose()
     {
         // Reset the base directory
-        NetConextServer.SetBaseDirectory(Directory.GetCurrentDirectory());
+        try
+        {
+            NetConextServer.SetBaseDirectory(Directory.GetCurrentDirectory());
+        }
+        catch
+        {
+            // Ignore errors when resetting base directory
+        }
 
         // Cleanup test directory
         try
@@ -551,7 +593,37 @@ namespace TestProject
             // Ignore cleanup errors
         }
 
-        client?.Dispose();
+        // Dispose the client
+        try
+        {
+            client?.Dispose();
+        }
+        catch
+        {
+            // Ignore errors when disposing client
+        }
+
+        // Kill any remaining NetContextServer processes
+        try
+        {
+            foreach (var process in Process.GetProcessesByName("NetContextServer"))
+            {
+                try
+                {
+                    process.Kill();
+                    process.WaitForExit(1000);
+                }
+                catch
+                {
+                    // Ignore errors when killing processes
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors when getting processes
+        }
+
         GC.SuppressFinalize(this);
     }
 } 

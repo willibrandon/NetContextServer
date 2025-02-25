@@ -30,4 +30,13 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- Add target to copy the executable to the test output directory -->
+  <Target Name="CopyNetContextServerExecutable" AfterTargets="Build">
+    <ItemGroup>
+      <ExecutableFiles Include="$(SolutionDir)src\NetContextServer\bin\$(Configuration)\$(TargetFramework)\**\NetContextServer*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ExecutableFiles)" DestinationFolder="$(OutputPath)" />
+    <Message Text="Copied NetContextServer executable to test output directory" Importance="high" />
+  </Target>
+
 </Project>
