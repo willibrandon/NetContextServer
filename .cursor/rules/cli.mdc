@@ -1,7 +1,6 @@
 ---
 description: CLI Tool Implementation Rules
 globs: **/Program.cs, **/CLI/**/*.cs, **/CommandLine/**/*.cs
-alwaysApply: false
 ---
 # CLI Tool Implementation Rules
 

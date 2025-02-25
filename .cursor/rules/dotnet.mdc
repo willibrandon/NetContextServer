@@ -1,7 +1,6 @@
 ---
 description: .NET Codebase Context MCP Server Development Rules
 globs: *.cs, *.csproj, *.sln
-alwaysApply: false
 ---
 # .NET Codebase Context MCP Server Development Rules
 
