@@ -1,8 +1,18 @@
 ﻿namespace MCPSharp.Test;
 
-public class ImplementationTests
+public class ImplementationTests : IDisposable
 {
-    private readonly static MCPClient client = new("Test Client", "1.0.0", "MCPSharp.Example.exe");
+    private readonly MCPClient client;
+    
+    public ImplementationTests()
+    {
+        client = new MCPClient("Test Client", "1.0.0", "MCPSharp.Example.exe");
+    }
+
+    public void Dispose()
+    {
+        client.Dispose();
+    }
 
     [Fact]
     public async Task Test_ListTools()
