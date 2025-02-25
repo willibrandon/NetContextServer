@@ -6,6 +6,7 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
+        using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
         var rootCommand = new RootCommand("NetContext Client - MCP client for .NET codebase interaction");
         
         // Hello command
@@ -14,7 +15,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("hello");
                 await Console.Out.WriteLineAsync(result.Content[0].Text);
             }
@@ -33,7 +33,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("echo", new Dictionary<string, object> { { "input", message } });
                 await Console.Out.WriteLineAsync(result.Content[0].Text);
             }
@@ -54,7 +53,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("add", new Dictionary<string, object> 
                 { 
                     { "a", a },
@@ -83,7 +81,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var complexObj = new Dictionary<string, object>
                 {
                     { "Name", name },
@@ -109,9 +106,13 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", directory } });
-                await Console.Out.WriteLineAsync("Base directory set successfully.");
+                await Console.Out.WriteLineAsync("Base directory set successfully. ");
+
+                if (result != null && result.Content != null && result.Content.Length > 0)
+                {
+                    await Console.Out.WriteLineAsync(result.Content[0]?.Text);
+                }
             }
             catch (Exception ex)
             {
@@ -126,7 +127,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("list_projects");
                 var projects = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
                 foreach (var project in projects!)
@@ -149,7 +149,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", projectPath } });
                 var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
                 foreach (var file in files!)
@@ -172,7 +171,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", filePath } });
                 await Console.Out.WriteLineAsync(result.Content[0].Text);
             }
@@ -191,7 +189,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("search_code", new Dictionary<string, object> { { "searchText", searchText } });
                 var matches = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
                 foreach (var match in matches!)
@@ -212,7 +209,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("list_solutions");
                 var solutions = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
                 foreach (var solution in solutions!)
@@ -235,7 +231,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("list_projects_in_dir", new Dictionary<string, object> { { "directory", directory } });
                 var projects = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
                 foreach (var project in projects!)
@@ -258,7 +253,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", projectDir } });
                 var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
                 foreach (var file in files!.Where(f => !f.Contains("\\obj\\")))
@@ -281,7 +275,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("add_ignore_patterns", new Dictionary<string, object> { { "patterns", patterns } });
                 var response = JsonSerializer.Deserialize<AddIgnorePatternsResponse>(result.Content[0].Text);
                 
@@ -326,7 +319,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("remove_ignore_patterns", new Dictionary<string, object> { { "patterns", patterns } });
                 var response = JsonSerializer.Deserialize<RemoveIgnorePatternsResponse>(result.Content[0].Text);
 
@@ -379,7 +371,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("get_state_file_location");
                 var response = JsonSerializer.Deserialize<StateFileLocationResponse>(result.Content[0].Text);
                 await Console.Out.WriteLineAsync($"State file location: {response!.StateFilePath}");
@@ -397,7 +388,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("get_ignore_patterns");
                 var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(result.Content[0].Text);
                 
@@ -429,7 +419,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("clear_ignore_patterns");
                 var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(result.Content[0].Text);
                 
@@ -453,7 +442,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var result = await client.CallToolAsync("throw_exception");
                 await Console.Out.WriteLineAsync(result.Content[0].Text);
             }
@@ -474,7 +462,6 @@ class Program
         {
             try
             {
-                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
                 var args = new Dictionary<string, object> { { "query", query } };
                 if (top.HasValue)
                 {
