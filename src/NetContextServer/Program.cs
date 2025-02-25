@@ -443,8 +443,9 @@ namespace NetContextServer
                         FilePath = GetRelativePath(r.Snippet.FilePath),
                         StartLine = r.Snippet.StartLine,
                         EndLine = r.Snippet.EndLine,
-                        Content = r.Snippet.Content.Trim(),
-                        Score = Math.Round(r.Score * 100, 1) // Convert to percentage
+                        Content = FormatCodeContent(r.Snippet.Content),
+                        Score = Math.Round(r.Score * 100, 1), // Convert to percentage
+                        ParentScope = GetParentScope(r.Snippet.Content)
                     })
                 });
             }
@@ -452,6 +453,71 @@ namespace NetContextServer
             {
                 return JsonSerializer.Serialize(new { Error = ex.Message });
             }
+        }
+
+        private static string FormatCodeContent(string content)
+        {
+            var lines = content.Split('\n');
+            var result = new List<string>();
+            var inRelevantBlock = false;
+            var relevantIndentation = 0;
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i];
+                var trimmedLine = line.TrimStart();
+
+                // Detect start of relevant code blocks
+                if (trimmedLine.Contains("class ") || 
+                    trimmedLine.Contains("interface ") ||
+                    trimmedLine.Contains("void ") ||
+                    trimmedLine.Contains("async ") ||
+                    trimmedLine.Contains("public ") ||
+                    trimmedLine.Contains("private ") ||
+                    trimmedLine.Contains("protected "))
+                {
+                    inRelevantBlock = true;
+                    relevantIndentation = line.Length - trimmedLine.Length;
+                }
+
+                // Add the line with appropriate formatting
+                if (inRelevantBlock || !string.IsNullOrWhiteSpace(trimmedLine))
+                {
+                    result.Add(line);
+                }
+
+                // Detect end of relevant block
+                if (inRelevantBlock && 
+                    trimmedLine.Length > 0 && 
+                    (line.Length - trimmedLine.Length) <= relevantIndentation)
+                {
+                    inRelevantBlock = false;
+                }
+            }
+
+            return string.Join("\n", result).Trim();
+        }
+
+        private static string GetParentScope(string content)
+        {
+            var scopeStack = new Stack<string>();
+            var lines = content.Split('\n');
+
+            foreach (var line in lines)
+            {
+                var trimmed = line.TrimStart();
+                if (trimmed.Contains("namespace ") || 
+                    trimmed.Contains("class ") ||
+                    trimmed.Contains("interface ") ||
+                    trimmed.Contains("struct ") ||
+                    trimmed.Contains("enum "))
+                {
+                    var name = trimmed.Split(new[] { ' ', '{', ':', '(' }, StringSplitOptions.RemoveEmptyEntries)[1];
+                    scopeStack.Push(name);
+                }
+            }
+
+            return string.Join(".", scopeStack.Reverse());
         }
     }
 

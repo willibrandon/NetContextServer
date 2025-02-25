@@ -488,6 +488,10 @@ class Program
                 foreach (var match in response.Results)
                 {
                     await Console.Out.WriteLineAsync($"File: {match.FilePath}");
+                    if (!string.IsNullOrEmpty(match.ParentScope))
+                    {
+                        await Console.Out.WriteLineAsync($"Scope: {match.ParentScope}");
+                    }
                     await Console.Out.WriteLineAsync($"Lines {match.StartLine}-{match.EndLine} (Score: {match.Score}%)");
                     await Console.Out.WriteLineAsync("Content:");
                     await Console.Out.WriteLineAsync(match.Content);
@@ -562,5 +566,6 @@ class Program
         public int EndLine { get; set; }
         public string Content { get; set; } = "";
         public float Score { get; set; }
+        public string ParentScope { get; set; } = "";
     }
 }

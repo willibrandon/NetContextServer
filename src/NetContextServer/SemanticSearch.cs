@@ -15,8 +15,9 @@ public class CodeSnippet
 
 public class SemanticSearch
 {
-    private const int CHUNK_SIZE = 1000;
-    private const int OVERLAP = 100;
+    private const int CHUNK_SIZE = 200;
+    private const int OVERLAP = 20;
+    private const int CONTEXT_LINES = 3;
     private readonly Kernel _kernel;
     private readonly Dictionary<string, CodeSnippet> _cache = new();
     private readonly HashSet<string> _indexedFiles = new();
@@ -141,13 +142,35 @@ public class SemanticSearch
     {
         var chunks = new List<string>();
         var lines = content.Split('\n');
-        
-        for (int i = 0; i < lines.Length; i += CHUNK_SIZE - OVERLAP)
+        var currentChunk = new List<string>();
+        var currentDepth = 0;
+
+        for (int i = 0; i < lines.Length; i++)
         {
-            var chunkLines = lines.Skip(i).Take(CHUNK_SIZE).ToList();
-            chunks.Add(string.Join("\n", chunkLines));
+            var line = lines[i];
+            currentChunk.Add(line);
+            
+            // Track code block depth
+            currentDepth += line.Count(c => c == '{') - line.Count(c => c == '}');
+
+            // Create a new chunk when we:
+            // 1. Hit the chunk size limit AND we're at depth 0 (not in middle of a block)
+            // 2. OR we have a complete code block
+            if ((currentChunk.Count >= CHUNK_SIZE && currentDepth == 0) || 
+                (currentDepth == 0 && line.Trim().Length > 0))
+            {
+                chunks.Add(string.Join("\n", currentChunk));
+                // Keep overlap lines for context
+                currentChunk = new List<string>(lines.Skip(i - OVERLAP + 1).Take(OVERLAP));
+            }
         }
-        
+
+        // Add any remaining lines
+        if (currentChunk.Any())
+        {
+            chunks.Add(string.Join("\n", currentChunk));
+        }
+
         return chunks;
     }
 
@@ -159,15 +182,30 @@ public class SemanticSearch
 
     private static bool IsMeaningfulCode(string chunk)
     {
-        // Ignore chunks that are mostly whitespace, comments, or very short
-        var meaningfulLines = chunk.Split('\n')
+        var lines = chunk.Split('\n');
+        
+        // Count meaningful lines
+        var meaningfulLines = lines
             .Where(line => !string.IsNullOrWhiteSpace(line))
             .Where(line => !line.TrimStart().StartsWith("//"))
             .Where(line => !line.TrimStart().StartsWith("/*"))
             .Where(line => !line.TrimStart().StartsWith("*"))
             .Count();
 
-        return meaningfulLines >= 3;
+        // Check if chunk contains important code structures
+        var hasCodeStructure = lines.Any(line => 
+            line.Contains("class ") ||
+            line.Contains("interface ") ||
+            line.Contains("struct ") ||
+            line.Contains("enum ") ||
+            line.Contains("void ") ||
+            line.Contains("async ") ||
+            line.Contains("return ") ||
+            line.Contains("public ") ||
+            line.Contains("private ") ||
+            line.Contains("protected "));
+
+        return meaningfulLines >= 3 || hasCodeStructure;
     }
 
     private static double CosineSimilarity(ReadOnlyMemory<float> a, ReadOnlyMemory<float> b)
