@@ -1,6 +1,6 @@
 using MCPSharp;
 using System.Text.Json;
-using System.Text.Json.Nodes;
+using System.Diagnostics;
 
 namespace NetContextServer.Tests;
 
@@ -15,6 +15,27 @@ public class NetContextServerTests : IDisposable
 
     public NetContextServerTests()
     {
+        // Kill any running NetContextServer processes
+        try
+        {
+            foreach (var process in Process.GetProcessesByName("NetContextServer"))
+            {
+                try
+                {
+                    process.Kill();
+                    process.WaitForExit(3000); // Wait up to 3 seconds for the process to exit
+                }
+                catch
+                {
+                    // Ignore errors when trying to kill processes
+                }
+            }
+        }
+        catch
+        {
+            // Ignore any exceptions when trying to get or kill processes
+        }
+
         // Setup test directory and files
         _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerTests");
         _testProjectPath = Path.Combine(_testDir, "Test.csproj");
