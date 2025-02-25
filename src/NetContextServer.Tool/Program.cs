@@ -19,7 +19,7 @@ internal class Program
             // Parse command line arguments (to be expanded in future chunks)
             if (args.Length > 0 && args[0].StartsWith("--solution="))
             {
-                solutionRoot = args[0].Substring("--solution=".Length).Trim('"');
+                solutionRoot = args[0]["--solution=".Length..].Trim('"');
             }
             
             Console.WriteLine($"Scanning solution at: {solutionRoot}");

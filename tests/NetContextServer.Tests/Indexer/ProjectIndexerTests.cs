@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using NetContextServer.Core.Indexer;
-using Xunit;
 
 namespace NetContextServer.Tests.Indexer;
 

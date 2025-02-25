@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using MCPSharp;
-using NetContextServer.Core.Indexer;
 using NetContextServer.Core.Models;
 
 namespace NetContextServer.Core.MCP;

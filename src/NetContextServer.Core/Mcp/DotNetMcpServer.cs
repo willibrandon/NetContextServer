@@ -1,5 +1,3 @@
-using System;
-using System.Threading.Tasks;
 using MCPSharp;
 using NetContextServer.Core.Indexer;
 
