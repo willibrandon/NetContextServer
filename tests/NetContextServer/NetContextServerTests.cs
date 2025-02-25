@@ -537,6 +537,160 @@ namespace TestProject
         Assert.True(hasRelevantResult, "Results should include relevant content matching the query");
     }
 
+    [SkippableFact]
+    [Trait("Category", "AI_Generated")]
+    public async Task SemanticSearch_ReturnsSemanticallySimilarResults()
+    {
+        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
+        
+        Skip.If(string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key), 
+            "Skipping test because Azure OpenAI credentials are not available");
+
+        // Create test files with semantically related but textually different content
+        var testFiles = new Dictionary<string, string>
+        {
+            { "Authentication.cs", @"
+namespace Security {
+    public class Authentication {
+        public bool ValidateUserCredentials(string username, string password) {
+            // Check if username and password are valid
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) {
+                return false;
+            }
+            
+            // In a real system, this would check against a database
+            return username == ""admin"" && password == ""secure123"";
+        }
+    }
+}" },
+            { "Security.cs", @"
+namespace Access {
+    public class Security {
+        public bool CheckAccess(string userId, string resource) {
+            // Verify if the user has access to the requested resource
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(resource)) {
+                return false;
+            }
+            
+            // In a real system, this would check permissions in a database
+            return userId == ""admin"" || resource.StartsWith(""public"");
+        }
+    }
+}" },
+            { "UserManagement.cs", @"
+namespace Users {
+    public class UserManagement {
+        public bool Login(string username, string password) {
+            // Authenticate user login
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) {
+                return false;
+            }
+            
+            // Validate credentials (simplified for testing)
+            return username.Length > 3 && password.Length > 6;
+        }
+    }
+}" },
+            { "Logging.cs", @"
+namespace System {
+    public class Logging {
+        public void LogError(string message, Exception? exception = null) {
+            // Log error message and exception details
+            var timestamp = DateTime.Now.ToString(""yyyy-MM-dd HH:mm:ss"");
+            var logEntry = $""[ERROR] {timestamp}: {message}"";
+            
+            if (exception != null) {
+                logEntry += $""\nException: {exception.Message}\n{exception.StackTrace}"";
+            }
+            
+            // In a real system, this would write to a log file or database
+            Console.Error.WriteLine(logEntry);
+        }
+    }
+}" }
+        };
+
+        // Create the test files
+        foreach (var file in testFiles)
+        {
+            File.WriteAllText(Path.Combine(_testDir, file.Key), file.Value);
+        }
+
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        
+        // Dictionary of queries and expected files that should be returned
+        var queryTests = new Dictionary<string, string[]>
+        {
+            { "how to verify user login", new[] { "Authentication.cs", "UserManagement.cs" } },
+            { "check user permissions", new[] { "Security.cs", "UserManagement.cs" } },
+            { "handle authentication errors", new[] { "Authentication.cs", "Logging.cs", "UserManagement.cs" } }
+        };
+        
+        foreach (var queryTest in queryTests)
+        {
+            var query = queryTest.Key;
+            var expectedFiles = queryTest.Value;
+            
+            Console.WriteLine($"Testing query: {query}");
+            Console.WriteLine($"Expected files: {string.Join(", ", expectedFiles)}");
+            
+            var result = await client.CallToolAsync("semantic_search", new Dictionary<string, object> 
+            { 
+                { "query", query },
+                { "topK", 3 }
+            });
+
+            var response = JsonSerializer.Deserialize<Dictionary<string, object>>(result.Content[0].Text);
+            Assert.NotNull(response);
+            
+            var resultsJson = System.Text.Json.JsonSerializer.Serialize(response["Results"]);
+            var results = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(resultsJson);
+            
+            Assert.NotNull(results);
+            Assert.NotEmpty(results);
+            
+            // Log the found files and their scores
+            var foundFiles = results.Select(r => Path.GetFileName(r["FilePath"]?.ToString() ?? string.Empty)).ToArray();
+            var scores = results.Select(r => ((JsonElement)r["Score"]).GetDouble()).ToArray();
+            
+            Console.WriteLine($"Found files: {string.Join(", ", foundFiles)}");
+            Console.WriteLine($"Scores: {string.Join(", ", scores)}");
+            
+            // Verify that each expected file is found in the results
+            foreach (var expectedFile in expectedFiles)
+            {
+                Assert.Contains(results, r => 
+                    Path.GetFileName(r["FilePath"]?.ToString() ?? string.Empty)
+                        .Equals(expectedFile, StringComparison.OrdinalIgnoreCase));
+            }
+            
+            // Verify that the results are in descending order by score
+            for (int i = 1; i < scores.Length; i++)
+            {
+                Assert.True(scores[i - 1] >= scores[i], 
+                    $"Results should be in descending order by score. Score at position {i-1} ({scores[i-1]}) should be >= score at position {i} ({scores[i]})");
+            }
+            
+            // Verify that each result has a parent scope that is relevant to the domain
+            foreach (var resultItem in results)
+            {
+                var parentScope = resultItem["ParentScope"]?.ToString() ?? string.Empty;
+                Assert.True(
+                    parentScope.Contains("Authentication", StringComparison.OrdinalIgnoreCase) ||
+                    parentScope.Contains("Security", StringComparison.OrdinalIgnoreCase) ||
+                    parentScope.Contains("User", StringComparison.OrdinalIgnoreCase) ||
+                    parentScope.Contains("Login", StringComparison.OrdinalIgnoreCase) ||
+                    parentScope.Contains("Log", StringComparison.OrdinalIgnoreCase) ||
+                    parentScope.Contains("Validate", StringComparison.OrdinalIgnoreCase) ||
+                    parentScope.Contains("Check", StringComparison.OrdinalIgnoreCase) ||
+                    parentScope.Contains("Access", StringComparison.OrdinalIgnoreCase),
+                    $"Parent scope should be relevant to the domain. Got: {parentScope}"
+                );
+            }
+        }
+    }
+
     [Fact]
     [Trait("Category", "AI_Generated")]
     public async Task ListFiles_ShouldFindAllNetFileTypes()
