@@ -1,5 +1,6 @@
 ﻿using MCPSharp;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 await MCPServer.StartAsync("NetConextServer", "1.0");
 
@@ -12,6 +13,16 @@ namespace NetContextServer
     public class NetConextServer
     {
         private static string BaseDirectory { get; set; } = Directory.GetCurrentDirectory();
+        private static HashSet<string> IgnorePatterns { get; set; } = new(StringComparer.OrdinalIgnoreCase) 
+        { 
+            "*.env",
+            "appsettings.*.json",
+            "*.pfx",
+            "*.key",
+            "*.pem",
+            "*password*",
+            "*secret*"
+        };
 
         // Static constructor to initialize the base directory
         static NetConextServer()
@@ -19,11 +30,80 @@ namespace NetContextServer
             BaseDirectory = Directory.GetCurrentDirectory();
         }
 
+        /// <summary>
+        /// Add patterns to ignore when scanning files
+        /// </summary>
+        [McpFunction("add_ignore_patterns", "Add patterns to ignore when scanning files")]
+        public static string AddIgnorePatterns([McpParameter(true)] string[] patterns)
+        {
+            foreach (var pattern in patterns)
+            {
+                IgnorePatterns.Add(pattern);
+            }
+            return JsonSerializer.Serialize(IgnorePatterns.ToArray());
+        }
+
+        /// <summary>
+        /// Get current ignore patterns
+        /// </summary>
+        [McpFunction("get_ignore_patterns", "Get current ignore patterns")]
+        public static string GetIgnorePatterns()
+        {
+            return JsonSerializer.Serialize(IgnorePatterns.ToArray());
+        }
+
+        /// <summary>
+        /// Clear all ignore patterns
+        /// </summary>
+        [McpFunction("clear_ignore_patterns", "Clear all ignore patterns")]
+        public static string ClearIgnorePatterns()
+        {
+            IgnorePatterns.Clear();
+            return JsonSerializer.Serialize(IgnorePatterns.ToArray());
+        }
+
+        private static bool IsPathSafe(string path)
+        {
+            try
+            {
+                var fullPath = Path.GetFullPath(path);
+                var basePath = Path.GetFullPath(BaseDirectory);
+                return fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool ShouldIgnoreFile(string filePath)
+        {
+            var fileName = Path.GetFileName(filePath);
+            foreach (var pattern in IgnorePatterns)
+            {
+                if (pattern.Contains("*"))
+                {
+                    var regex = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
+                    if (Regex.IsMatch(fileName, regex, RegexOptions.IgnoreCase))
+                        return true;
+                }
+                else if (fileName.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         // Method to set base directory (for testing)
         [McpFunction("set_base_directory", "set_base_directory description")]
-        public static void SetBaseDirectory(string directory)
+        public static string SetBaseDirectory([McpParameter(true)] string directory)
         {
+            if (!Directory.Exists(directory))
+                return JsonSerializer.Serialize(new[] { "Error: Directory not found" });
+
             BaseDirectory = directory;
+            return JsonSerializer.Serialize(new[] { $"Base directory set to: {directory}" });
         }
 
         ///<summary>just returns a message for testing.</summary>
@@ -61,7 +141,9 @@ namespace NetContextServer
         [McpFunction("list_projects", "Lists all .csproj files in the solution")]
         public static string ListProjects()
         {
-            var projects = Directory.GetFiles(BaseDirectory, "*.csproj", SearchOption.AllDirectories);
+            var projects = Directory.GetFiles(BaseDirectory, "*.csproj", SearchOption.AllDirectories)
+                .Where(p => !ShouldIgnoreFile(p))
+                .ToArray();
             return JsonSerializer.Serialize(projects);
         }
 
@@ -73,7 +155,12 @@ namespace NetContextServer
             if (!Directory.Exists(projectPath))
                 return JsonSerializer.Serialize(new[] { "Error: Directory not found" });
 
-            var files = Directory.GetFiles(Path.GetDirectoryName(projectPath)!, "*.cs", SearchOption.AllDirectories);
+            if (!IsPathSafe(projectPath))
+                return JsonSerializer.Serialize(new[] { "Error: Access to this directory is not allowed" });
+
+            var files = Directory.GetFiles(projectPath, "*.cs", SearchOption.TopDirectoryOnly)
+                .Where(f => !ShouldIgnoreFile(f))
+                .ToArray();
             return JsonSerializer.Serialize(files);
         }
 
@@ -83,7 +170,8 @@ namespace NetContextServer
         public static string SearchCode([McpParameter(true)] string searchText)
         {
             var results = new List<string>();
-            var csFiles = Directory.GetFiles(BaseDirectory, "*.cs", SearchOption.AllDirectories);
+            var csFiles = Directory.GetFiles(BaseDirectory, "*.cs", SearchOption.AllDirectories)
+                .Where(f => !ShouldIgnoreFile(f));
             
             foreach (var file in csFiles)
             {
@@ -107,6 +195,12 @@ namespace NetContextServer
         {
             if (!File.Exists(filePath))
                 return "Error: File not found";
+
+            if (!IsPathSafe(filePath))
+                return "Error: Access to this file is not allowed";
+
+            if (ShouldIgnoreFile(filePath))
+                return "Error: This file type is restricted";
 
             try
             {
@@ -142,7 +236,12 @@ namespace NetContextServer
             if (!Directory.Exists(directory))
                 return JsonSerializer.Serialize(new[] { "Error: Directory not found" });
 
-            var projects = Directory.GetFiles(directory, "*.csproj", SearchOption.AllDirectories);
+            if (!IsPathSafe(directory))
+                return JsonSerializer.Serialize(new[] { "Error: Access to this directory is not allowed" });
+
+            var projects = Directory.GetFiles(directory, "*.csproj", SearchOption.AllDirectories)
+                .Where(p => !ShouldIgnoreFile(p))
+                .ToArray();
             return JsonSerializer.Serialize(projects);
         }
 
@@ -155,9 +254,13 @@ namespace NetContextServer
             if (!Directory.Exists(projectDir))
                 return JsonSerializer.Serialize(new[] { "Error: Directory not found" });
 
+            if (!IsPathSafe(projectDir))
+                return JsonSerializer.Serialize(new[] { "Error: Access to this directory is not allowed" });
+
             var sourceFiles = Directory.GetFiles(projectDir, "*.cs", SearchOption.AllDirectories)
                 .Concat(Directory.GetFiles(projectDir, "*.vb", SearchOption.AllDirectories))
                 .Concat(Directory.GetFiles(projectDir, "*.fs", SearchOption.AllDirectories))
+                .Where(f => !ShouldIgnoreFile(f))
                 .ToArray();
 
             return JsonSerializer.Serialize(sourceFiles);

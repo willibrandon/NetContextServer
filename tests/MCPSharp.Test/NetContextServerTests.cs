@@ -135,6 +135,7 @@ public class NetContextServerTests : IDisposable
         var content = "test content";
         File.WriteAllText(_testCsFilePath, content);
         
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
         var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", _testCsFilePath } });
         Assert.Equal(content, result.Content[0].Text);
     }
@@ -143,6 +144,7 @@ public class NetContextServerTests : IDisposable
     public async Task OpenFile_WithInvalidPath_ReturnsError()
     {
         var invalidPath = Path.Combine(_testDir, "NonExistent.cs");
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
         var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", invalidPath } });
         Assert.StartsWith("Error:", result.Content[0].Text);
     }
@@ -153,6 +155,7 @@ public class NetContextServerTests : IDisposable
         var largeContent = new string('x', 150_000);
         File.WriteAllText(_testCsFilePath, largeContent);
         
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
         var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", _testCsFilePath } });
         Assert.Contains("[Truncated]", result.Content[0].Text);
         Assert.True(result.Content[0].Text.Length < largeContent.Length);
@@ -203,6 +206,7 @@ public class NetContextServerTests : IDisposable
         File.WriteAllText(Path.Combine(_testDir, "Test.vb"), "");
         File.WriteAllText(Path.Combine(_testDir, "Test.fs"), "");
 
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
         var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", _testDir } });
         var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
 
@@ -221,6 +225,81 @@ public class NetContextServerTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Contains(error, e => e.StartsWith("Error:"));
+    }
+
+    [Fact]
+    public async Task AddIgnorePatterns_AddsNewPatterns()
+    {
+        var patterns = new[] { "*.secret", "password.txt" };
+        var result = await client.CallToolAsync("add_ignore_patterns", new Dictionary<string, object> { { "patterns", patterns } });
+        var updatedPatterns = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(updatedPatterns);
+        Assert.Contains(updatedPatterns, p => p == "*.secret");
+        Assert.Contains(updatedPatterns, p => p == "password.txt");
+    }
+
+    [Fact]
+    public async Task GetIgnorePatterns_ReturnsCurrentPatterns()
+    {
+        var result = await client.CallToolAsync("get_ignore_patterns");
+        var patterns = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(patterns);
+        Assert.Contains(patterns, p => p == "*.env");
+        Assert.Contains(patterns, p => p == "*.pfx");
+    }
+
+    [Fact]
+    public async Task ClearIgnorePatterns_RemovesAllPatterns()
+    {
+        var result = await client.CallToolAsync("clear_ignore_patterns");
+        var patterns = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(patterns);
+        Assert.Empty(patterns);
+    }
+
+    [Fact]
+    public async Task ListFiles_IgnoresSensitiveFiles()
+    {
+        // Create test files
+        var testCsPath = Path.Combine(_testDir, "test.cs");
+        var envPath = Path.Combine(_testDir, "secrets.env");
+        var configPath = Path.Combine(_testDir, "appsettings.Production.json");
+
+        File.WriteAllText(testCsPath, "");
+        File.WriteAllText(envPath, "");
+        File.WriteAllText(configPath, "");
+
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", _testDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
+        Assert.NotNull(files);
+        Assert.Single(files); // Should only contain the .cs file
+        Assert.Equal(testCsPath, files[0], ignoreCase: true);
+    }
+
+    [Fact]
+    public async Task OpenFile_BlocksAccessOutsideBaseDirectory()
+    {
+        var outsidePath = Path.Combine(Path.GetTempPath(), "outside.txt");
+        File.WriteAllText(outsidePath, "secret content");
+
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", outsidePath } });
+        Assert.Contains("Error: Access to this file is not allowed", result.Content[0].Text);
+    }
+
+    [Fact]
+    public async Task OpenFile_BlocksSensitiveFiles()
+    {
+        var secretFile = Path.Combine(_testDir, "secrets.env");
+        File.WriteAllText(secretFile, "secret content");
+
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", secretFile } });
+        Assert.Contains("Error: This file type is restricted", result.Content[0].Text);
     }
 
     public void Dispose()
