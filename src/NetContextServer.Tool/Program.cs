@@ -10,15 +10,15 @@ public class Program
         {
             var solutionPath = ParseArgs(args);
             
-            Console.WriteLine($"Starting .NET Context MCP Server for solution: {solutionPath}");
+            await Console.Out.WriteLineAsync($"Starting .NET Context MCP Server for solution: {solutionPath}");
             
             var server = new DotNetMcpServer(solutionPath);
             await server.StartAsync();
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Error: {ex.Message}");
-            PrintUsage();
+            await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+            await PrintUsageAsync();
             Environment.Exit(1);
         }
     }
@@ -48,7 +48,12 @@ public class Program
             }
             else if (args[i] == "--help" || args[i] == "-h")
             {
-                PrintUsage();
+                // We can't use await here since this is a synchronous method
+                // Instead, we'll print the usage synchronously to avoid deadlocks
+                Console.WriteLine("Usage: net-context-server [options]");
+                Console.WriteLine("Options:");
+                Console.WriteLine("  --solution, -s <path>    Path to the solution directory");
+                Console.WriteLine("  --help, -h               Show this help message");
                 Environment.Exit(0);
             }
         }
@@ -62,11 +67,11 @@ public class Program
         return solutionPath;
     }
 
-    private static void PrintUsage()
+    private static async Task PrintUsageAsync()
     {
-        Console.WriteLine("Usage: net-context-server [options]");
-        Console.WriteLine("Options:");
-        Console.WriteLine("  --solution, -s <path>    Path to the solution directory");
-        Console.WriteLine("  --help, -h               Show this help message");
+        await Console.Out.WriteLineAsync("Usage: net-context-server [options]");
+        await Console.Out.WriteLineAsync("Options:");
+        await Console.Out.WriteLineAsync("  --solution, -s <path>    Path to the solution directory");
+        await Console.Out.WriteLineAsync("  --help, -h               Show this help message");
     }
 }

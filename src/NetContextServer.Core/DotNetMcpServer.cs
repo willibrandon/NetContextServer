@@ -29,22 +29,22 @@ public class DotNetMcpServer
         try
         {
             // Build the project index
-            Console.WriteLine($"Building project index for solution: {_solutionPath}");
+            await Console.Out.WriteLineAsync($"Building project index for solution: {_solutionPath}");
             _projectIndex = ProjectIndexer.BuildIndex(_solutionPath);
             
             // Create the tools
             _tools = new McpTools(_projectIndex);
 
             // Start the MCP server
-            Console.WriteLine("Starting .NET Context MCP Server...");
-            Console.WriteLine($"Found {_projectIndex.ProjectPaths.Count} projects and {_projectIndex.FilesByProject.Values.SelectMany(v => v).Count()} source files.");
+            await Console.Out.WriteLineAsync("Starting .NET Context MCP Server...");
+            await Console.Out.WriteLineAsync($"Found {_projectIndex.ProjectPaths.Count} projects and {_projectIndex.FilesByProject.Values.SelectMany(v => v).Count()} source files.");
             
             // The MCPSharp library automatically discovers and registers tools with the [McpTool] attribute
             await MCPServer.StartAsync("NetContextServer", "1.0.0");
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Error starting server: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error starting server: {ex.Message}");
             throw;
         }
     }

@@ -133,19 +133,23 @@ public class McpToolsTests : IDisposable
         
         // Verify each method has the McpFunction attribute
         var listProjectsMethod = typeof(McpTools).GetMethod("ListProjects");
-        var listProjectsAttributes = listProjectsMethod.GetCustomAttributes(typeof(McpFunctionAttribute), false);
+        Assert.NotNull(listProjectsMethod);
+        var listProjectsAttributes = listProjectsMethod!.GetCustomAttributes(typeof(McpFunctionAttribute), false);
         Assert.Single(listProjectsAttributes);
         
         var listFilesMethod = typeof(McpTools).GetMethod("ListFiles");
-        var listFilesAttributes = listFilesMethod.GetCustomAttributes(typeof(McpFunctionAttribute), false);
+        Assert.NotNull(listFilesMethod);
+        var listFilesAttributes = listFilesMethod!.GetCustomAttributes(typeof(McpFunctionAttribute), false);
         Assert.Single(listFilesAttributes);
         
         var openFileMethod = typeof(McpTools).GetMethod("OpenFile");
-        var openFileAttributes = openFileMethod.GetCustomAttributes(typeof(McpFunctionAttribute), false);
+        Assert.NotNull(openFileMethod);
+        var openFileAttributes = openFileMethod!.GetCustomAttributes(typeof(McpFunctionAttribute), false);
         Assert.Single(openFileAttributes);
         
         var searchCodeMethod = typeof(McpTools).GetMethod("SearchCode");
-        var searchCodeAttributes = searchCodeMethod.GetCustomAttributes(typeof(McpFunctionAttribute), false);
+        Assert.NotNull(searchCodeMethod);
+        var searchCodeAttributes = searchCodeMethod!.GetCustomAttributes(typeof(McpFunctionAttribute), false);
         Assert.Single(searchCodeAttributes);
     }
 
