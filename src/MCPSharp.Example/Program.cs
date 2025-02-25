@@ -20,6 +20,7 @@ namespace NetContextServer
         }
 
         // Method to set base directory (for testing)
+        [McpFunction("set_base_directory", "set_base_directory description")]
         public static void SetBaseDirectory(string directory)
         {
             BaseDirectory = directory;
