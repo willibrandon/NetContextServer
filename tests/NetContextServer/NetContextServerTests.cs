@@ -1,6 +1,6 @@
 using MCPSharp;
-using System.Text.Json;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace NetContextServer.Tests;
 
@@ -356,14 +356,14 @@ public class NetContextServerTests : IDisposable
         Assert.Contains("Error: This file type is restricted", result.Content[0].Text);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task SemanticSearch_WithValidCredentials_ReturnsResults()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
         
-        Assert.NotNull(endpoint);
-        Assert.NotNull(key);
+        Skip.If(string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key), 
+            "Skipping test because Azure OpenAI credentials are not available");
 
         // Create a test file with some content
         File.WriteAllText(_testCsFilePath, "public class Test { public void HandleAuthentication() { } }");
@@ -380,14 +380,14 @@ public class NetContextServerTests : IDisposable
         Assert.NotNull(response["Results"]);
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task SemanticSearch_ReturnsResultsOptimizedForAI()
     {
         var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
         var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
         
-        Assert.NotNull(endpoint);
-        Assert.NotNull(key);
+        Skip.If(string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key), 
+            "Skipping test because Azure OpenAI credentials are not available");
 
         // Create test files with various code structures
         var testFile1 = Path.Combine(_testDir, "TestClass.cs");
