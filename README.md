@@ -16,7 +16,7 @@ A .NET Codebase Context MCP Server that provides AI assistants with access to yo
 Install as a global .NET tool:
 
 ```bash
-dotnet tool install --global NetContextServer.Tool
+dotnet tool install --global NetContextServer
 ```
 
 ### Environment Setup
@@ -29,22 +29,17 @@ For semantic search functionality, you need to set up the following environment 
 
 ### Basic Commands
 
-1. **Start the Server**:
-```bash
-net-context-server --solution "path/to/your/Solution.sln"
-```
-
-2. **Set Base Directory**:
+1. **Set Base Directory**:
 ```bash
 NetContextClient.exe set-base-dir --directory "D:\YourProject"
 ```
 
-3. **List Projects**:
+2. **List Projects**:
 ```bash
 NetContextClient.exe list-projects-in-dir --directory "D:\YourProject\src"
 ```
 
-4. **List Source Files**:
+3. **List Source Files**:
 ```bash
 NetContextClient.exe list-source-files --project-dir "D:\YourProject\src\YourProject"
 ```
@@ -118,9 +113,9 @@ The following patterns are ignored by default to protect sensitive information:
 
 ## Example Workflow
 
-1. Start the server pointing to your solution:
+1. Set the base directory for your project:
 ```bash
-net-context-server --solution "D:\Projects\MyApp\MyApp.sln"
+NetContextClient.exe set-base-dir --directory "D:\Projects\MyApp"
 ```
 
 2. Set up custom ignore patterns:
@@ -137,6 +132,19 @@ NetContextClient.exe list-projects-in-dir --directory "D:\Projects\MyApp\src"
 ```bash
 NetContextClient.exe semantic-search --query "user authentication and authorization logic"
 ```
+
+## Integration with AI Coding Tools
+
+NetContextServer implements the [Model Context Protocol (MCP)](https://docs.cursor.com/context/model-context-protocol), allowing seamless integration with AI coding assistants that support this protocol, such as:
+
+- **Cursor AI**: Provides your AI assistant with full context of your codebase for more accurate code generation and assistance
+- **Other MCP-compatible tools**: Any tool that implements the Model Context Protocol can connect to NetContextServer
+
+To use with Cursor AI:
+1. Configure Cursor AI to use the NetContextServer as its MCP provider
+2. Enjoy enhanced code assistance with full codebase context
+
+The Model Context Protocol enables AI tools to request specific information about your codebase, making the AI's suggestions more relevant and accurate to your specific project structure and coding patterns.
 
 ## Error Handling
 
@@ -158,10 +166,10 @@ The server provides clear error messages for common scenarios:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ## Acknowledgments
 
-- Built with [MCPSharp](https://github.com/your-reference-here/MCPSharp)
+- Built with [MCPSharp](https://github.com/afrise/MCPSharp)
 - Uses Azure OpenAI for semantic embeddings
 - Inspired by the Model Context Protocol 
