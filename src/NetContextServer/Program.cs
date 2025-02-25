@@ -25,6 +25,8 @@ namespace NetContextServer
         };
         private static HashSet<string> UserIgnorePatterns { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         private static readonly string StateFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ignore_patterns.json");
+        private static SemanticSearch _semanticSearch = new();
+        private static bool _isIndexed = false;
 
         // Static constructor to initialize the base directory and load state
         static NetConextServer()
@@ -395,6 +397,42 @@ namespace NetContextServer
                 .ToArray();
 
             return JsonSerializer.Serialize(sourceFiles);
+        }
+
+        private static async Task EnsureIndexedAsync()
+        {
+            if (_isIndexed) return;
+
+            var sourceFiles = Directory.GetFiles(BaseDirectory, "*.cs", SearchOption.AllDirectories)
+                .Concat(Directory.GetFiles(BaseDirectory, "*.vb", SearchOption.AllDirectories))
+                .Concat(Directory.GetFiles(BaseDirectory, "*.fs", SearchOption.AllDirectories))
+                .Where(f => !ShouldIgnoreFile(f))
+                .ToList();
+
+            await _semanticSearch.IndexFilesAsync(sourceFiles);
+            _isIndexed = true;
+        }
+
+        /// <summary>
+        /// Semantic code search using embeddings
+        /// </summary>
+        [McpFunction("semantic_search", "Search code using semantic similarity")]
+        public static async Task<string> SemanticSearchCodeAsync([McpParameter(true)] string query, [McpParameter(false)] int topK = 5)
+        {
+            await EnsureIndexedAsync();
+            var results = await _semanticSearch.SearchAsync(query, topK);
+            
+            return JsonSerializer.Serialize(new
+            {
+                Results = results.Select(r => new
+                {
+                    r.FilePath,
+                    r.StartLine,
+                    r.EndLine,
+                    r.Content,
+                    r.Score
+                }).ToArray()
+            });
         }
     }
 

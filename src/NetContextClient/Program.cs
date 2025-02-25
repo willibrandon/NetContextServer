@@ -464,6 +464,44 @@ class Program
             }
         });
 
+        // Semantic Search command
+        var semanticSearchCommand = new Command("semantic-search", "Search code using semantic similarity");
+        var queryOption = new Option<string>("--query", "The search query") { IsRequired = true };
+        var topKOption = new Option<int?>("--top", "Number of results to return") { IsRequired = false };
+        semanticSearchCommand.AddOption(queryOption);
+        semanticSearchCommand.AddOption(topKOption);
+        semanticSearchCommand.SetHandler<string, int?>(async (query, top) =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var args = new Dictionary<string, object> { { "query", query } };
+                if (top.HasValue)
+                {
+                    args["topK"] = top.Value;
+                }
+                
+                var result = await client.CallToolAsync("semantic_search", args);
+                var response = JsonSerializer.Deserialize<SemanticSearchResponse>(result.Content[0].Text);
+                
+                await Console.Out.WriteLineAsync($"Found {response!.Results.Length} results:\n");
+                foreach (var match in response.Results)
+                {
+                    await Console.Out.WriteLineAsync($"File: {match.FilePath}");
+                    await Console.Out.WriteLineAsync($"Lines {match.StartLine}-{match.EndLine} (Score: {match.Score:F3})");
+                    await Console.Out.WriteLineAsync("Content:");
+                    await Console.Out.WriteLineAsync(match.Content);
+                    await Console.Out.WriteLineAsync(new string('-', 80));
+                    await Console.Out.WriteLineAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, queryOption, topKOption);
+
         rootCommand.AddCommand(helloCommand);
         rootCommand.AddCommand(echoCommand);
         rootCommand.AddCommand(addCommand);
@@ -482,6 +520,7 @@ class Program
         rootCommand.AddCommand(removeIgnorePatternsCommand);
         rootCommand.AddCommand(getStateFileLocationCommand);
         rootCommand.AddCommand(throwExceptionCommand);
+        rootCommand.AddCommand(semanticSearchCommand);
         
         return await rootCommand.InvokeAsync(args);
     }
@@ -509,5 +548,19 @@ class Program
     private class StateFileLocationResponse
     {
         public string StateFilePath { get; set; } = "";
+    }
+
+    private class SemanticSearchResponse
+    {
+        public SemanticSearchResult[] Results { get; set; } = [];
+    }
+
+    private class SemanticSearchResult
+    {
+        public string FilePath { get; set; } = "";
+        public int StartLine { get; set; }
+        public int EndLine { get; set; }
+        public string Content { get; set; } = "";
+        public float Score { get; set; }
     }
 }

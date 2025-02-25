@@ -6,6 +6,7 @@ A .NET Codebase Context MCP Server that provides AI assistants with access to yo
 
 - 📁 **Project & File Listing**: List all projects and source files in your solution
 - 🔍 **Code Search**: Search through your codebase for specific patterns or text
+- 🧠 **Semantic Search**: Find code based on meaning, not just exact text matches
 - 📖 **File Content Access**: Read source files with safety checks and size limits
 - 🛡️ **Security**: Built-in safeguards for sensitive files and directory access
 - 🎯 **Pattern Management**: Flexible ignore patterns for controlling file access
@@ -17,6 +18,12 @@ Install as a global .NET tool:
 ```bash
 dotnet tool install --global NetContextServer.Tool
 ```
+
+### Environment Setup
+
+For semantic search functionality, you need to set up the following environment variables:
+- `AZURE_OPENAI_ENDPOINT`: Your Azure OpenAI endpoint URL
+- `AZURE_OPENAI_API_KEY`: Your Azure OpenAI API key
 
 ## Usage
 
@@ -41,6 +48,28 @@ NetContextClient.exe list-projects-in-dir --directory "D:\YourProject\src"
 ```bash
 NetContextClient.exe list-source-files --project-dir "D:\YourProject\src\YourProject"
 ```
+
+### Search Commands
+
+1. **Text Search**:
+```bash
+NetContextClient.exe search-code --text "authentication"
+```
+
+2. **Semantic Search**:
+```bash
+# Search with default number of results (5)
+NetContextClient.exe semantic-search --query "handle user authentication"
+
+# Search with custom number of results
+NetContextClient.exe semantic-search --query "database connection string" --top 10
+```
+
+The semantic search feature:
+- Uses embeddings to find code based on meaning
+- Returns code snippets ranked by relevance
+- Shows line numbers and similarity scores
+- Automatically indexes your code on first search
 
 ### Pattern Management
 
@@ -104,9 +133,9 @@ NetContextClient.exe add-ignore-patterns --patterns "*.generated.cs" "*.designer
 NetContextClient.exe list-projects-in-dir --directory "D:\Projects\MyApp\src"
 ```
 
-4. List source files in a specific project:
+4. Search for authentication-related code:
 ```bash
-NetContextClient.exe list-source-files --project-dir "D:\Projects\MyApp\src\MyApp.Core"
+NetContextClient.exe semantic-search --query "user authentication and authorization logic"
 ```
 
 ## Error Handling
@@ -117,6 +146,7 @@ The server provides clear error messages for common scenarios:
 - Invalid patterns
 - File size limits exceeded
 - Restricted file types
+- Missing environment variables for semantic search
 
 ## Contributing
 
@@ -133,4 +163,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - Built with [MCPSharp](https://github.com/your-reference-here/MCPSharp)
+- Uses Azure OpenAI for semantic embeddings
 - Inspired by the Model Context Protocol 
