@@ -205,7 +205,178 @@ class Program
                 Environment.Exit(1);
             }
         }, searchTextOption);
-        
+
+        // List Solutions command
+        var listSolutionsCommand = new Command("list-solutions", "List all solution files");
+        listSolutionsCommand.SetHandler(async () =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var result = await client.CallToolAsync("list_solutions");
+                var solutions = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+                foreach (var solution in solutions!)
+                {
+                    await Console.Out.WriteLineAsync(solution);
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        });
+
+        // List Projects In Directory command
+        var listProjectsInDirCommand = new Command("list-projects-in-dir", "List all projects in a directory");
+        var directoryOption = new Option<string>("--directory", "The directory to search in") { IsRequired = true };
+        listProjectsInDirCommand.AddOption(directoryOption);
+        listProjectsInDirCommand.SetHandler(async (string directory) =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var result = await client.CallToolAsync("list_projects_in_dir", new Dictionary<string, object> { { "directory", directory } });
+                var projects = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+                foreach (var project in projects!)
+                {
+                    await Console.Out.WriteLineAsync(project);
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, directoryOption);
+
+        // List Source Files command
+        var listSourceFilesCommand = new Command("list-source-files", "List all source files in a project");
+        var projectDirOption = new Option<string>("--project-dir", "The project directory") { IsRequired = true };
+        listSourceFilesCommand.AddOption(projectDirOption);
+        listSourceFilesCommand.SetHandler(async (string projectDir) =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", projectDir } });
+                var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+                foreach (var file in files!.Where(f => !f.Contains("\\obj\\")))
+                {
+                    await Console.Out.WriteLineAsync(file);
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, projectDirOption);
+
+        // Add Ignore Patterns command
+        var addIgnorePatternsCommand = new Command("add-ignore-patterns", "Add patterns to ignore when listing files");
+        var patternsOption = new Option<string[]>("--patterns", "The patterns to ignore") { IsRequired = true, AllowMultipleArgumentsPerToken = true };
+        addIgnorePatternsCommand.AddOption(patternsOption);
+        addIgnorePatternsCommand.SetHandler(async (string[] patterns) =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var result = await client.CallToolAsync("add_ignore_patterns", new Dictionary<string, object> { { "patterns", patterns } });
+                var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(result.Content[0].Text);
+                
+                await Console.Out.WriteLineAsync("Added user patterns:");
+                foreach (var pattern in response!.UserPatterns)
+                {
+                    await Console.Out.WriteLineAsync($"  {pattern}");
+                }
+                
+                await Console.Out.WriteLineAsync("\nAll active patterns:");
+                foreach (var pattern in response.AllPatterns)
+                {
+                    await Console.Out.WriteLineAsync($"  {pattern}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, patternsOption);
+
+        // Get Ignore Patterns command
+        var getIgnorePatternsCommand = new Command("get-ignore-patterns", "Get current ignore patterns");
+        getIgnorePatternsCommand.SetHandler(async () =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var result = await client.CallToolAsync("get_ignore_patterns");
+                var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(result.Content[0].Text);
+                
+                await Console.Out.WriteLineAsync("Default patterns:");
+                foreach (var pattern in response!.DefaultPatterns)
+                {
+                    await Console.Out.WriteLineAsync($"  {pattern}");
+                }
+                
+                if (response.UserPatterns.Any())
+                {
+                    await Console.Out.WriteLineAsync("\nUser-added patterns:");
+                    foreach (var pattern in response.UserPatterns)
+                    {
+                        await Console.Out.WriteLineAsync($"  {pattern}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        });
+
+        // Clear Ignore Patterns command
+        var clearIgnorePatternsCommand = new Command("clear-ignore-patterns", "Clear all user-added ignore patterns");
+        clearIgnorePatternsCommand.SetHandler(async () =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var result = await client.CallToolAsync("clear_ignore_patterns");
+                var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(result.Content[0].Text);
+                
+                await Console.Out.WriteLineAsync("Cleared all user-added patterns.");
+                await Console.Out.WriteLineAsync("\nRemaining default patterns:");
+                foreach (var pattern in response!.DefaultPatterns)
+                {
+                    await Console.Out.WriteLineAsync($"  {pattern}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        });
+
+        // Throw Exception command (for testing error handling)
+        var throwExceptionCommand = new Command("throw-exception", "Throw an exception (for testing)");
+        throwExceptionCommand.SetHandler(async () =>
+        {
+            try
+            {
+                using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+                var result = await client.CallToolAsync("throw_exception");
+                await Console.Out.WriteLineAsync(result.Content[0].Text);
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        });
+
         rootCommand.AddCommand(helloCommand);
         rootCommand.AddCommand(echoCommand);
         rootCommand.AddCommand(addCommand);
@@ -215,7 +386,21 @@ class Program
         rootCommand.AddCommand(listFilesCommand);
         rootCommand.AddCommand(openFileCommand);
         rootCommand.AddCommand(searchCodeCommand);
+        rootCommand.AddCommand(listSolutionsCommand);
+        rootCommand.AddCommand(listProjectsInDirCommand);
+        rootCommand.AddCommand(listSourceFilesCommand);
+        rootCommand.AddCommand(addIgnorePatternsCommand);
+        rootCommand.AddCommand(getIgnorePatternsCommand);
+        rootCommand.AddCommand(clearIgnorePatternsCommand);
+        rootCommand.AddCommand(throwExceptionCommand);
         
         return await rootCommand.InvokeAsync(args);
+    }
+
+    private class IgnorePatternsResponse
+    {
+        public string[] DefaultPatterns { get; set; } = [];
+        public string[] UserPatterns { get; set; } = [];
+        public string[] AllPatterns { get; set; } = [];
     }
 }

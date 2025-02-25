@@ -13,7 +13,7 @@ namespace NetContextServer
     public class NetConextServer
     {
         private static string BaseDirectory { get; set; } = Directory.GetCurrentDirectory();
-        private static HashSet<string> IgnorePatterns { get; set; } = new(StringComparer.OrdinalIgnoreCase) 
+        private static readonly HashSet<string> DefaultIgnorePatterns = new(StringComparer.OrdinalIgnoreCase) 
         { 
             "*.env",
             "appsettings.*.json",
@@ -23,11 +23,36 @@ namespace NetContextServer
             "*password*",
             "*secret*"
         };
+        private static HashSet<string> UserIgnorePatterns { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly string StateFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ignore_patterns.json");
 
-        // Static constructor to initialize the base directory
+        // Static constructor to initialize the base directory and load state
         static NetConextServer()
         {
             BaseDirectory = Directory.GetCurrentDirectory();
+            LoadState();
+        }
+
+        private static void SaveState()
+        {
+            var state = new { UserPatterns = UserIgnorePatterns.ToArray() };
+            File.WriteAllText(StateFile, JsonSerializer.Serialize(state));
+        }
+
+        private static void LoadState()
+        {
+            try
+            {
+                if (File.Exists(StateFile))
+                {
+                    var state = JsonSerializer.Deserialize<UserPatternsState>(File.ReadAllText(StateFile));
+                    UserIgnorePatterns = new HashSet<string>(state!.UserPatterns, StringComparer.OrdinalIgnoreCase);
+                }
+            }
+            catch
+            {
+                UserIgnorePatterns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
         }
 
         /// <summary>
@@ -38,9 +63,16 @@ namespace NetContextServer
         {
             foreach (var pattern in patterns)
             {
-                IgnorePatterns.Add(pattern);
+                UserIgnorePatterns.Add(pattern);
             }
-            return JsonSerializer.Serialize(IgnorePatterns.ToArray());
+            SaveState();
+            var allPatterns = GetAllPatterns().ToArray();
+            return JsonSerializer.Serialize(new
+            {
+                DefaultPatterns = DefaultIgnorePatterns.ToArray(),
+                UserPatterns = UserIgnorePatterns.ToArray(),
+                AllPatterns = allPatterns
+            });
         }
 
         /// <summary>
@@ -49,7 +81,14 @@ namespace NetContextServer
         [McpFunction("get_ignore_patterns", "Get current ignore patterns")]
         public static string GetIgnorePatterns()
         {
-            return JsonSerializer.Serialize(IgnorePatterns.ToArray());
+            LoadState(); // Reload state to ensure we have latest patterns
+            var allPatterns = GetAllPatterns().ToArray();
+            return JsonSerializer.Serialize(new
+            {
+                DefaultPatterns = DefaultIgnorePatterns.ToArray(),
+                UserPatterns = UserIgnorePatterns.ToArray(),
+                AllPatterns = allPatterns
+            });
         }
 
         /// <summary>
@@ -58,41 +97,44 @@ namespace NetContextServer
         [McpFunction("clear_ignore_patterns", "Clear all ignore patterns")]
         public static string ClearIgnorePatterns()
         {
-            IgnorePatterns.Clear();
-            return JsonSerializer.Serialize(IgnorePatterns.ToArray());
+            UserIgnorePatterns.Clear();
+            SaveState();
+            var allPatterns = GetAllPatterns().ToArray();
+            return JsonSerializer.Serialize(new
+            {
+                DefaultPatterns = DefaultIgnorePatterns.ToArray(),
+                UserPatterns = UserIgnorePatterns.ToArray(),
+                AllPatterns = allPatterns
+            });
+        }
+
+        private static IEnumerable<string> GetAllPatterns()
+        {
+            return DefaultIgnorePatterns.Concat(UserIgnorePatterns).Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
         private static bool IsPathSafe(string path)
         {
-            try
-            {
-                var fullPath = Path.GetFullPath(path);
-                var basePath = Path.GetFullPath(BaseDirectory);
-                return fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase);
-            }
-            catch
-            {
+            if (string.IsNullOrEmpty(path))
                 return false;
-            }
+
+            var fullPath = Path.GetFullPath(path);
+            var basePath = Path.GetFullPath(BaseDirectory);
+            return fullPath.StartsWith(basePath, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool ShouldIgnoreFile(string filePath)
         {
             var fileName = Path.GetFileName(filePath);
-            foreach (var pattern in IgnorePatterns)
+            return GetAllPatterns().Any(pattern =>
             {
                 if (pattern.Contains("*"))
                 {
                     var regex = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
-                    if (Regex.IsMatch(fileName, regex, RegexOptions.IgnoreCase))
-                        return true;
+                    return Regex.IsMatch(fileName, regex, RegexOptions.IgnoreCase);
                 }
-                else if (fileName.Contains(pattern, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-            return false;
+                return fileName.Equals(pattern, StringComparison.OrdinalIgnoreCase);
+            });
         }
 
         // Method to set base directory (for testing)
@@ -278,5 +320,10 @@ namespace NetContextServer
         public int Age { get; set; } = 0;
         /// <summary>The hobbies of the object</summary>
         public string[] Hobbies { get; set; } = [];
+    }
+
+    internal class UserPatternsState
+    {
+        public string[] UserPatterns { get; set; } = [];
     }
 }
