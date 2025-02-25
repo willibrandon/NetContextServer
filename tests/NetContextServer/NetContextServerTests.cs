@@ -49,6 +49,31 @@ public class NetContextServerTests : IDisposable
     }
 
     [Fact]
+    public async Task Test_ListTools()
+    {
+        var tools = await client.GetToolsAsync();
+        Assert.NotNull(tools);
+        Assert.True(tools.Count > 0);
+        tools.ForEach(tool =>
+        {
+            Assert.False(string.IsNullOrEmpty(tool.Name));
+            Assert.False(string.IsNullOrEmpty(tool.Description));
+        });
+    }
+
+    [Fact]
+    public async Task TestPing()
+    {
+        await client.PingAsync();
+    }
+
+    [Fact]
+    public async Task TestCallInvalidTool()
+    {
+        Assert.True((await client.CallToolAsync("NotARealTool")).IsError);
+    }
+
+    [Fact]
     public async Task Hello_ReturnsExpectedMessage()
     {
         // Set the base directory for NetContextServer to our test directory
@@ -64,6 +89,13 @@ public class NetContextServerTests : IDisposable
         var input = "test message";
         var result = await client.CallToolAsync("echo", new Dictionary<string, object> { { "input", input } });
         Assert.Equal(input, result.Content[0].Text);
+    }
+
+    [Fact]
+    public async Task TestCallToolWithInvalidParameters()
+    {
+        var result = await client.CallToolAsync("Echo", new Dictionary<string, object> { { "invalid_param", "test" } });
+        Assert.True(result.IsError);
     }
 
     [Theory]
