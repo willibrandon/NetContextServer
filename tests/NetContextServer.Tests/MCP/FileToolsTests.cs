@@ -6,6 +6,8 @@ namespace NetContextServer.Tests.MCP;
 [Trait("Category", "AI_Generated")]
 public class FileToolsTests
 {
+    private readonly FileTools _fileTools = new();
+
     [Fact]
     public void SearchCode_WithValidKeyword_ReturnsResults()
     {
@@ -38,10 +40,10 @@ public class FileToolsTests
                 }
             };
             
-            FileTools.Initialize(index);
+            _fileTools.Initialize(index);
 
             // Act
-            var results = FileTools.SearchCode("TestMethod");
+            var results = _fileTools.SearchCode("TestMethod");
 
             // Assert
             Assert.Single(results);
@@ -88,10 +90,10 @@ public class FileToolsTests
                 }
             };
             
-            FileTools.Initialize(index);
+            _fileTools.Initialize(index);
 
             // Act
-            var results = FileTools.SearchCode("NonExistentKeyword");
+            var results = _fileTools.SearchCode("NonExistentKeyword");
 
             // Assert
             Assert.Empty(results);
@@ -108,10 +110,10 @@ public class FileToolsTests
     {
         // Arrange
         var index = new ProjectIndex();
-        FileTools.Initialize(index);
+        _fileTools.Initialize(index);
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => FileTools.SearchCode(""));
+        Assert.Throws<ArgumentException>(() => _fileTools.SearchCode(""));
     }
 
     [Fact]
@@ -133,10 +135,10 @@ public class FileToolsTests
                 SolutionRoot = tempDir
             };
             
-            FileTools.Initialize(index);
+            _fileTools.Initialize(index);
 
             // Act
-            var result = FileTools.OpenFile(filePath);
+            var result = _fileTools.OpenFile(filePath);
 
             // Assert
             Assert.Equal(fileContent, result);
@@ -156,10 +158,10 @@ public class FileToolsTests
         {
             SolutionRoot = Path.GetTempPath()
         };
-        FileTools.Initialize(index);
+        _fileTools.Initialize(index);
         var nonExistentFile = Path.Combine(Path.GetTempPath(), "NonExistentFile.cs");
 
         // Act & Assert
-        Assert.Throws<FileNotFoundException>(() => FileTools.OpenFile(nonExistentFile));
+        Assert.Throws<FileNotFoundException>(() => _fileTools.OpenFile(nonExistentFile));
     }
 } 

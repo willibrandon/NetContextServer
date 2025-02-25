@@ -22,9 +22,13 @@ internal class Program
             Console.WriteLine($"Indexed {index.ProjectPaths.Count} projects with {ProjectIndexer.GetAllSourceFiles(index).Count} source files");
             
             // Initialize the tool classes with the project index
-            ProjectTools.Initialize(index);
-            FileTools.Initialize(index);
-            SymbolTools.Initialize(index);
+            var projectTools = new ProjectTools();
+            var fileTools = new FileTools();
+            var symbolTools = new SymbolTools();
+            
+            projectTools.Initialize(index);
+            fileTools.Initialize(index);
+            symbolTools.Initialize(index);
             
             // Create and start the MCP server
             var server = new DotNetMcpServer(solutionPath, serverName, serverVersion);

@@ -1,5 +1,7 @@
 using MCPSharp;
+using MCPSharp.Model;
 using NetContextServer.Core.Indexer;
+using System.Reflection;
 
 namespace NetContextServer.Tool.Mcp;
 
@@ -17,6 +19,7 @@ public class DotNetMcpServer(string solutionPath, string serverName = "NetContex
     private readonly string _solutionPath = solutionPath ?? throw new ArgumentNullException(nameof(solutionPath));
     private readonly string _serverName = serverName ?? throw new ArgumentNullException(nameof(serverName));
     private readonly string _serverVersion = serverVersion ?? throw new ArgumentNullException(nameof(serverVersion));
+    private MCPServer? _server;
 
     /// <summary>
     /// Starts the MCP server using standard input/output for communication.
@@ -32,15 +35,35 @@ public class DotNetMcpServer(string solutionPath, string serverName = "NetContex
             var index = ProjectIndexer.BuildIndex(_solutionPath);
             Console.WriteLine($"Indexed {index.ProjectPaths.Count} projects with {ProjectIndexer.GetAllSourceFiles(index).Count} source files");
             
-            // Initialize the tool classes with the project index
-            ProjectTools.Initialize(index);
-            FileTools.Initialize(index);
-            SymbolTools.Initialize(index);
+            // Create and initialize the tool classes with the project index
+            var projectTools = new ProjectTools();
+            var fileTools = new FileTools();
+            var symbolTools = new SymbolTools();
             
-            // Start the MCP server
-            await MCPServer.StartAsync(_serverName, _serverVersion);
+            projectTools.Initialize(index);
+            fileTools.Initialize(index);
+            symbolTools.Initialize(index);
+
+            // Create the MCP server instance
+            _server = new MCPServer(new Implementation(_serverName, _serverVersion));
+            
+            // Register the tool types using reflection
+            var registerMethod = typeof(MCPServer).GetMethod("RegisterTool", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (registerMethod != null)
+            {
+                registerMethod.Invoke(_server, new object[] { typeof(ProjectTools) });
+                registerMethod.Invoke(_server, new object[] { typeof(FileTools) });
+                registerMethod.Invoke(_server, new object[] { typeof(SymbolTools) });
+            }
+
+            // Start listening for requests
+            var startMethod = typeof(MCPServer).GetMethod("Start", BindingFlags.Instance | BindingFlags.Public);
+            startMethod?.Invoke(_server, null);
             
             Console.WriteLine("MCP server started and ready to receive requests");
+            
+            // Keep the server running
+            await Task.Delay(-1);
         }
         catch (Exception ex)
         {

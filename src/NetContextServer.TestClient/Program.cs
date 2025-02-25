@@ -14,8 +14,13 @@ internal class Program
         Console.WriteLine("Note: Make sure the MCP server is running in another terminal with: net-context-server");
         Console.WriteLine();
         
-        // Create an MCP client
-        using var client = new MCPClient("NetContextServer.TestClient", "1.0.0", @"D:\SRC\NetContextServer\src\NetContextServer.Tool\bin\Debug\net9.0\NetContextServer.Tool");
+        // Create an MCP client with the correct protocol version
+        using var client = new MCPClient(
+            "NetContextServer.TestClient", 
+            "1.0.0", 
+            @"D:\SRC\NetContextServer\src\NetContextServer.Tool\bin\Debug\net9.0\NetContextServer.Tool.exe",
+            "--solution", @"D:\SRC\NetContextServer"
+        );
         
         try
         {
@@ -51,7 +56,13 @@ internal class Program
         }
         catch (Exception ex)
         {
+            Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"Error: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"Inner Error: {ex.InnerException.Message}");
+            }
+            Console.ResetColor();
         }
         
         Console.WriteLine("\nPress Enter to exit...");

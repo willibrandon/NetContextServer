@@ -10,6 +10,8 @@ namespace NetContextServer.Tests.MCP;
 [Trait("Category", "AI_Generated")]
 public class SymbolToolsTests
 {
+    private readonly SymbolTools _symbolTools = new();
+
     [Fact]
     public void GetDocForSymbol_WithValidSymbol_ReturnsDocumentation()
     {
@@ -52,10 +54,10 @@ public class SymbolToolsTests
                 }
             };
             
-            SymbolTools.Initialize(index);
+            _symbolTools.Initialize(index);
 
             // Act
-            var result = SymbolTools.GetDocForSymbol("TestClass");
+            var result = _symbolTools.GetDocForSymbol("TestClass");
 
             // Assert
             Assert.NotNull(result);
@@ -111,10 +113,10 @@ public class SymbolToolsTests
                 }
             };
             
-            SymbolTools.Initialize(index);
+            _symbolTools.Initialize(index);
 
             // Act
-            var result = SymbolTools.GetDocForSymbol("TestMethod");
+            var result = _symbolTools.GetDocForSymbol("TestMethod");
 
             // Assert
             Assert.NotNull(result);
@@ -167,10 +169,10 @@ public class SymbolToolsTests
                 }
             };
             
-            SymbolTools.Initialize(index);
+            _symbolTools.Initialize(index);
 
             // Act
-            var result = SymbolTools.GetDocForSymbol("NonExistentSymbol");
+            var result = _symbolTools.GetDocForSymbol("NonExistentSymbol");
 
             // Assert
             Assert.Null(result);
@@ -187,10 +189,10 @@ public class SymbolToolsTests
     {
         // Arrange
         var index = new ProjectIndex();
-        SymbolTools.Initialize(index);
+        _symbolTools.Initialize(index);
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => SymbolTools.GetDocForSymbol(""));
+        Assert.Throws<ArgumentException>(() => _symbolTools.GetDocForSymbol(""));
     }
 
     [Fact]
@@ -239,10 +241,10 @@ public class SymbolToolsTests
                 }
             };
             
-            SymbolTools.Initialize(index);
+            _symbolTools.Initialize(index);
 
             // Act
-            var symbols = SymbolTools.ListSymbols();
+            var symbols = _symbolTools.ListSymbols();
 
             // Assert
             Assert.NotEmpty(symbols);

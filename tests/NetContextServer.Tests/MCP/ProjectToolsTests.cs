@@ -7,6 +7,8 @@ namespace NetContextServer.Tests.MCP;
 [Trait("Category", "AI_Generated")]
 public class ProjectToolsTests
 {
+    private readonly ProjectTools _projectTools = new();
+
     [Fact]
     public void ListProjects_ReturnsProjectPaths()
     {
@@ -15,10 +17,10 @@ public class ProjectToolsTests
         {
             ProjectPaths = ["Project1.csproj", "Project2.csproj"]
         };
-        ProjectTools.Initialize(index);
+        _projectTools.Initialize(index);
 
         // Act
-        var result = ProjectTools.ListProjects();
+        var result = _projectTools.ListProjects();
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -39,10 +41,10 @@ public class ProjectToolsTests
                 { projectPath, files }
             }
         };
-        ProjectTools.Initialize(index);
+        _projectTools.Initialize(index);
 
         // Act
-        var result = ProjectTools.ListFiles(projectPath);
+        var result = _projectTools.ListFiles(projectPath);
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -61,10 +63,10 @@ public class ProjectToolsTests
                 { "Project1.csproj", new List<string> { "File1.cs" } }
             }
         };
-        ProjectTools.Initialize(index);
+        _projectTools.Initialize(index);
 
         // Act
-        var result = ProjectTools.ListFiles("NonExistentProject.csproj");
+        var result = _projectTools.ListFiles("NonExistentProject.csproj");
 
         // Assert
         Assert.Empty(result);
@@ -79,10 +81,10 @@ public class ProjectToolsTests
         {
             SolutionPath = solutionPath
         };
-        ProjectTools.Initialize(index);
+        _projectTools.Initialize(index);
 
         // Act
-        var result = ProjectTools.GetSolutionPath();
+        var result = _projectTools.GetSolutionPath();
 
         // Assert
         Assert.Equal(solutionPath, result);
@@ -97,10 +99,10 @@ public class ProjectToolsTests
         {
             SolutionRoot = solutionRoot
         };
-        ProjectTools.Initialize(index);
+        _projectTools.Initialize(index);
 
         // Act
-        var result = ProjectTools.GetSolutionRoot();
+        var result = _projectTools.GetSolutionRoot();
 
         // Assert
         Assert.Equal(solutionRoot, result);

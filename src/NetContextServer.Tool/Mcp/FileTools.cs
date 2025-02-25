@@ -7,16 +7,16 @@ namespace NetContextServer.Tool.Mcp;
 /// Provides MCP tools for working with source files in a .NET solution.
 /// </summary>
 [McpTool("file_tools", "Tools for working with source files in a .NET solution")]
-public static class FileTools
+public class FileTools
 {
-    private static ProjectIndex? _index;
+    private ProjectIndex? _index;
     private const int MaxFileSize = 100_000; // Maximum file size to return (characters)
 
     /// <summary>
     /// Initializes the FileTools with the specified project index.
     /// </summary>
     /// <param name="index">The project index containing information about projects and their files.</param>
-    public static void Initialize(ProjectIndex index)
+    public void Initialize(ProjectIndex index)
     {
         _index = index ?? throw new ArgumentNullException(nameof(index));
     }
@@ -48,7 +48,7 @@ public static class FileTools
     /// <param name="filePath">The path to the file to open.</param>
     /// <returns>The contents of the file, potentially truncated if too large.</returns>
     [McpFunction("open_file", "Opens a file and returns its contents")]
-    public static string OpenFile([McpParameter(true, "The path to the file to open")] string filePath)
+    public string OpenFile([McpParameter(true, "The path to the file to open")] string filePath)
     {
         EnsureInitialized();
         
@@ -75,7 +75,7 @@ public static class FileTools
     /// <param name="keyword">The keyword to search for.</param>
     /// <returns>A list of search results containing file paths, line numbers, and matching lines.</returns>
     [McpFunction("search_code", "Searches for a keyword in all source files")]
-    public static List<CodeSearchResult> SearchCode([McpParameter(true, "The keyword to search for")] string keyword)
+    public List<CodeSearchResult> SearchCode([McpParameter(true, "The keyword to search for")] string keyword)
     {
         EnsureInitialized();
         
@@ -113,7 +113,7 @@ public static class FileTools
         return results;
     }
 
-    private static void EnsureInitialized()
+    private void EnsureInitialized()
     {
         if (_index == null)
         {
@@ -121,7 +121,7 @@ public static class FileTools
         }
     }
 
-    private static bool IsFileInSolutionDirectory(string filePath)
+    private bool IsFileInSolutionDirectory(string filePath)
     {
         EnsureInitialized();
         var solutionRoot = _index!.SolutionRoot;
