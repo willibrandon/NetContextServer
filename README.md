@@ -29,14 +29,9 @@ dotnet build
 dotnet test
 ```
 
-## Running the Server
+## Running Commands
 
-1. Run the server from the build output:
-```bash
-dotnet run --project src/NetContextServer/NetContextServer.csproj
-```
-
-2. Run the client (in a separate terminal):
+Use the client to interact with your codebase:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- <command> [options]
 ```
