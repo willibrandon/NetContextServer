@@ -1,5 +1,6 @@
 using MCPSharp;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace NetContextServer.Tests;
 
@@ -324,6 +325,149 @@ public class NetContextServerTests : IDisposable
         var response = JsonSerializer.Deserialize<Dictionary<string, object>>(result.Content[0].Text);
         Assert.NotNull(response);
         Assert.NotNull(response["Results"]);
+    }
+
+    [Fact]
+    public async Task SemanticSearch_ReturnsResultsOptimizedForAI()
+    {
+        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
+        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
+        
+        Assert.NotNull(endpoint);
+        Assert.NotNull(key);
+
+        // Create test files with various code structures
+        var testFile1 = Path.Combine(_testDir, "TestClass.cs");
+        var testFile2 = Path.Combine(_testDir, "TestMethod.cs");
+        var testFile3 = Path.Combine(_testDir, "TestNamespace.cs");
+        
+        // File with class definition
+        File.WriteAllText(testFile1, @"
+namespace TestNamespace {
+    public class TestClass 
+    {
+        private string _name;
+        
+        public TestClass(string name) 
+        {
+            _name = name;
+        }
+        
+        public string GetName() 
+        {
+            return _name;
+        }
+    }
+}");
+
+        // File with method containing specific keyword
+        File.WriteAllText(testFile2, @"
+public class HelperMethods 
+{
+    public void ProcessData() 
+    {
+        // This method processes data
+        var data = GetData();
+        TransformData(data);
+    }
+    
+    private string[] GetData() 
+    {
+        return new[] { ""hello"", ""world"" };
+    }
+    
+    private void TransformData(string[] data) 
+    {
+        // Transform the data
+    }
+}");
+
+        // File with namespace and multiple classes
+        File.WriteAllText(testFile3, @"
+namespace TestProject 
+{
+    public interface IProcessor 
+    {
+        void Process();
+    }
+    
+    public class DataProcessor : IProcessor 
+    {
+        public void Process() 
+        {
+            // Implementation
+        }
+    }
+}");
+        
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        
+        // Search for "hello" which should find the method in TestMethod.cs
+        var result = await client.CallToolAsync("semantic_search", new Dictionary<string, object> 
+        { 
+            { "query", "hello" },
+            { "topK", 3 }
+        });
+
+        var response = JsonSerializer.Deserialize<Dictionary<string, object>>(result.Content[0].Text);
+        Assert.NotNull(response);
+        
+        var resultsJson = System.Text.Json.JsonSerializer.Serialize(response["Results"]);
+        var results = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(resultsJson);
+        
+        Assert.NotNull(results);
+        Assert.NotEmpty(results);
+        
+        // Verify the results contain the expected properties
+        foreach (var item in results)
+        {
+            // Check that each result has the required properties
+            Assert.True(item.ContainsKey("FilePath"));
+            Assert.True(item.ContainsKey("StartLine"));
+            Assert.True(item.ContainsKey("EndLine"));
+            Assert.True(item.ContainsKey("Content"));
+            Assert.True(item.ContainsKey("Score"));
+            Assert.True(item.ContainsKey("ParentScope"));
+            
+            // Verify content is not empty
+            Assert.NotEmpty(item["Content"].ToString());
+            
+            // Verify score is a positive number
+            var scoreElement = (JsonElement)item["Score"];
+            var score = scoreElement.GetDouble();
+            Assert.True(score > 0);
+            
+            // Verify content doesn't contain unnecessary whitespace at start/end
+            var content = item["Content"].ToString();
+            Assert.Equal(content.Trim(), content);
+            
+            // Verify content doesn't contain using statements
+            Assert.DoesNotContain("using ", content);
+            
+            // AI optimization checks
+            // 1. Content should be concise (not too long)
+            Assert.True(content.Length < 2000, "Content should be concise for AI processing");
+            
+            // 2. Content should not have excessive blank lines
+            var lines = content.Split('\n');
+            var blankLineCount = lines.Count(l => string.IsNullOrWhiteSpace(l));
+            Assert.True(blankLineCount < lines.Length / 3, "Content should not have excessive blank lines");
+            
+            // 3. Check that parent scope is provided
+            Assert.NotEmpty(item["ParentScope"].ToString());
+            
+            // 4. Check that the content is properly formatted code (contains braces, indentation)
+            Assert.Contains("{", content);
+            
+            // 5. Check that the score is presented as a percentage (0-100 range)
+            Assert.True(score <= 100, "Score should be in percentage format (0-100)");
+        }
+        
+        // Check if at least one result contains our "hello" keyword or is from TestMethod.cs
+        var hasRelevantResult = results.Any(r => 
+            r["Content"].ToString().Contains("hello", StringComparison.OrdinalIgnoreCase) || 
+            r["FilePath"].ToString().Contains("TestMethod.cs"));
+        Assert.True(hasRelevantResult, "Results should include relevant content matching the query");
     }
 
     public void Dispose()
