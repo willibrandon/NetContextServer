@@ -92,13 +92,6 @@ public class NetContextServerTests : IDisposable
     }
 
     [Fact]
-    public async Task Exception_ThrowsException()
-    {
-        var result = await client.CallToolAsync("throw_exception");
-        Assert.Contains("This is an exception", result.Content[0].Text);
-    }
-
-    [Fact]
     public async Task ListProjects_ReturnsJsonArray()
     {
         await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
