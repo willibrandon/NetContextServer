@@ -61,6 +61,11 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-projec
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-source-files --project-dir "D:\YourProject\src\YourProject"
 ```
 
+4. **Analyze Packages**:
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages --project-path "D:\YourProject\src\YourProject\YourProject.csproj"
+```
+
 ### Search Commands
 
 1. **Text Search**:
