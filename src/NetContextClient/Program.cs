@@ -25,79 +25,6 @@ class Program
             }
         });
 
-        // Echo command
-        var echoCommand = new Command("echo", "Echo back the input message");
-        var messageOption = new Option<string>("--message", "The message to echo") { IsRequired = true };
-        echoCommand.AddOption(messageOption);
-        echoCommand.SetHandler(async (string message) =>
-        {
-            try
-            {
-                var result = await client.CallToolAsync("echo", new Dictionary<string, object> { { "input", message } });
-                await Console.Out.WriteLineAsync(result.Content[0].Text);
-            }
-            catch (Exception ex)
-            {
-                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
-                Environment.Exit(1);
-            }
-        }, messageOption);
-
-        // Add command
-        var addCommand = new Command("add", "Add two numbers");
-        var aOption = new Option<int>("--a", "First number") { IsRequired = true };
-        var bOption = new Option<int>("--b", "Second number") { IsRequired = true };
-        addCommand.AddOption(aOption);
-        addCommand.AddOption(bOption);
-        addCommand.SetHandler(async (int a, int b) =>
-        {
-            try
-            {
-                var result = await client.CallToolAsync("add", new Dictionary<string, object> 
-                { 
-                    { "a", a },
-                    { "b", b }
-                });
-                await Console.Out.WriteLineAsync(result.Content[0].Text);
-            }
-            catch (Exception ex)
-            {
-                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
-                Environment.Exit(1);
-            }
-        }, aOption, bOption);
-
-        // Add Complex command
-        var addComplexCommand = new Command("add-complex", "Add a complex object with name, age, and hobbies");
-        var nameOption = new Option<string>("--name", "Person's name") { IsRequired = true };
-        var ageOption = new Option<int>("--age", "Person's age") { IsRequired = true };
-        var hobbiesOption = new Option<string[]>("--hobbies", "List of hobbies") { IsRequired = true, AllowMultipleArgumentsPerToken = true };
-        
-        addComplexCommand.AddOption(nameOption);
-        addComplexCommand.AddOption(ageOption);
-        addComplexCommand.AddOption(hobbiesOption);
-        
-        addComplexCommand.SetHandler(async (string name, int age, string[] hobbies) =>
-        {
-            try
-            {
-                var complexObj = new Dictionary<string, object>
-                {
-                    { "Name", name },
-                    { "Age", age },
-                    { "Hobbies", hobbies }
-                };
-                
-                var result = await client.CallToolAsync("add_complex", new Dictionary<string, object> { { "obj", complexObj } });
-                await Console.Out.WriteLineAsync(result.Content[0].Text);
-            }
-            catch (Exception ex)
-            {
-                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
-                Environment.Exit(1);
-            }
-        }, nameOption, ageOption, hobbiesOption);
-
         // Set Base Directory command
         var setBaseDirCommand = new Command("set-base-dir", "Set the base directory for file operations");
         var dirOption = new Option<string>("--directory", "The base directory path") { IsRequired = true };
@@ -494,9 +421,6 @@ class Program
         }, queryOption, topKOption);
 
         rootCommand.AddCommand(helloCommand);
-        rootCommand.AddCommand(echoCommand);
-        rootCommand.AddCommand(addCommand);
-        rootCommand.AddCommand(addComplexCommand);
         rootCommand.AddCommand(setBaseDirCommand);
         rootCommand.AddCommand(listProjectsCommand);
         rootCommand.AddCommand(listFilesCommand);

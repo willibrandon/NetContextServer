@@ -85,46 +85,10 @@ public class NetContextServerTests : IDisposable
     }
 
     [Fact]
-    public async Task Echo_ReturnsInputString()
-    {
-        var input = "test message";
-        var result = await client.CallToolAsync("echo", new Dictionary<string, object> { { "input", input } });
-        Assert.Equal(input, result.Content[0].Text);
-    }
-
-    [Fact]
     public async Task TestCallToolWithInvalidParameters()
     {
         var result = await client.CallToolAsync("Echo", new Dictionary<string, object> { { "invalid_param", "test" } });
         Assert.True(result.IsError);
-    }
-
-    [Theory]
-    [InlineData(1, 2, "3")]
-    [InlineData(-1, 1, "0")]
-    [InlineData(0, 0, "0")]
-    public async Task Add_ReturnsSumAsString(int a, int b, string expected)
-    {
-        var result = await client.CallToolAsync("add", new Dictionary<string, object> 
-        { 
-            { "a", a },
-            { "b", b }
-        });
-        Assert.Equal(expected, result.Content[0].Text);
-    }
-
-    [Fact]
-    public async Task AddComplex_ReturnsFormattedString()
-    {
-        var obj = new Dictionary<string, object>
-        {
-            { "Name", "Test" },
-            { "Age", 25 },
-            { "Hobbies", new[] { "Reading", "Coding" } }
-        };
-
-        var result = await client.CallToolAsync("add_complex", new Dictionary<string, object> { { "obj", obj } });
-        Assert.Equal("Name: Test, Age: 25, Hobbies: Reading, Coding", result.Content[0].Text);
     }
 
     [Fact]
