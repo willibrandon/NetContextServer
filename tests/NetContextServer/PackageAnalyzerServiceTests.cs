@@ -1,6 +1,7 @@
+using NetContextServer.Models;
 using NetContextServer.Services;
 
-namespace NetContextServer.Tests.Services;
+namespace NetContextServer.Tests;
 
 [Trait("Category", "AI_Generated")]
 public class PackageAnalyzerServiceTests : IDisposable
@@ -99,7 +100,7 @@ public class PackageAnalyzerServiceTests : IDisposable
         var csFilePath = Path.Combine(_testProjectDir, "Test.cs");
         await File.WriteAllTextAsync(csFilePath, "namespace Test { public class TestClass {} }");
 
-        var package = new PackageAnalyzerService.PackageReference
+        var package = new PackageReference
         {
             Id = "UnusedPackage",
             Version = "1.0.0",
@@ -123,7 +124,7 @@ public class PackageAnalyzerServiceTests : IDisposable
 using TestPackage;
 namespace Test { public class TestClass {} }");
 
-        var package = new PackageAnalyzerService.PackageReference
+        var package = new PackageReference
         {
             Id = "TestPackage",
             Version = "1.0.0",
@@ -142,7 +143,7 @@ namespace Test { public class TestClass {} }");
     public async Task AnalyzePackageAsync_WithInvalidVersion_HandlesError()
     {
         // Arrange
-        var package = new PackageAnalyzerService.PackageReference
+        var package = new PackageReference
         {
             Id = "TestPackage",
             Version = "invalid-version",

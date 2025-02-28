@@ -159,7 +159,7 @@ namespace NetContextServer
                 var baseDir = FileValidationService.BaseDirectory;
                 var analyzer = new PackageAnalyzerService(baseDir);
                 var packages = await analyzer.GetPackageReferencesAsync(projectPath);
-                var analyses = new List<PackageAnalyzerService.PackageAnalysis>();
+                var analyses = new List<PackageAnalysis>();
 
                 foreach (var package in packages)
                 {

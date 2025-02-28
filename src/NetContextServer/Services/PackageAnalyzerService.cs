@@ -1,3 +1,4 @@
+using NetContextServer.Models;
 using NuGet.Common;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
@@ -8,30 +9,9 @@ namespace NetContextServer.Services;
 
 public class PackageAnalyzerService(string? baseDirectory = null)
 {
-    private static readonly string[] KnownPackageFiles = new[] { "*.csproj", "packages.config" };
     private static readonly SourceRepository NuGetRepository = Repository.Factory.GetCoreV3("https://api.nuget.org/v3/index.json");
     private static readonly SourceCacheContext Cache = new();
     private readonly string _baseDirectory = baseDirectory ?? Directory.GetCurrentDirectory();
-
-    public class PackageReference
-    {
-        public string Id { get; set; } = string.Empty;
-        public string Version { get; set; } = string.Empty;
-        public string ProjectPath { get; set; } = string.Empty;
-    }
-
-    public class PackageAnalysis
-    {
-        public string PackageId { get; set; } = string.Empty;
-        public string Version { get; set; } = string.Empty;
-        public bool IsUsed { get; set; }
-        public bool HasUpdate { get; set; }
-        public string? LatestVersion { get; set; }
-        public bool HasSecurityIssues { get; set; }
-        public List<string> UsageLocations { get; set; } = new();
-        public List<string> TransitiveDependencies { get; set; } = new();
-        public string? RecommendedAction { get; set; }
-    }
 
     public async Task<List<PackageReference>> GetPackageReferencesAsync(string projectPath)
     {
