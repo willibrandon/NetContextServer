@@ -149,5 +149,33 @@ namespace NetContextServer
             FileValidationService.SetBaseDirectory(directory);
             return JsonSerializer.Serialize(new[] { $"Base directory set to: {directory}" });
         }
+
+        [McpFunction("analyze_packages", "Analyzes NuGet packages in the specified project")]
+        public static async Task<string> AnalyzePackagesAsync([McpParameter(true)] string projectPath)
+        {
+            try
+            {
+                FileValidationService.EnsureBaseDirectorySet();
+                var baseDir = FileValidationService.BaseDirectory;
+                var analyzer = new PackageAnalyzerService(baseDir);
+                var packages = await analyzer.GetPackageReferencesAsync(projectPath);
+                var analyses = new List<PackageAnalyzerService.PackageAnalysis>();
+
+                foreach (var package in packages)
+                {
+                    var analysis = await analyzer.AnalyzePackageAsync(package);
+                    analyses.Add(analysis);
+                }
+
+                return JsonSerializer.Serialize(analyses, new JsonSerializerOptions 
+                { 
+                    WriteIndented = true 
+                });
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { Error = ex.Message });
+            }
+        }
     }
 }

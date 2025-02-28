@@ -420,6 +420,61 @@ class Program
             }
         }, queryOption, topKOption);
 
+        // Analyze Packages command
+        var analyzePackagesCommand = new Command("analyze-packages", "Analyze NuGet packages in a project");
+        var analyzeProjectPathOption = new Option<string>("--project-path", "The project path to analyze") { IsRequired = true };
+        analyzePackagesCommand.AddOption(analyzeProjectPathOption);
+        analyzePackagesCommand.SetHandler(async (string projectPath) =>
+        {
+            try
+            {
+                var result = await client.CallToolAsync("analyze_packages", new Dictionary<string, object> { { "projectPath", projectPath } });
+                var analyses = JsonSerializer.Deserialize<PackageAnalysis[]>(result.Content[0].Text);
+
+                if (analyses == null || analyses.Length == 0)
+                {
+                    await Console.Out.WriteLineAsync("No packages found in the project.");
+                    return;
+                }
+
+                await Console.Out.WriteLineAsync($"Found {analyses.Length} package(s):\n");
+                foreach (var analysis in analyses)
+                {
+                    await Console.Out.WriteLineAsync($"Package: {analysis.PackageId}");
+                    await Console.Out.WriteLineAsync($"Current Version: {analysis.Version}");
+                    await Console.Out.WriteLineAsync($"Latest Version: {analysis.LatestVersion ?? "Unknown"}");
+                    await Console.Out.WriteLineAsync($"Status: {(analysis.IsUsed ? "Used" : "Unused")}");
+                    
+                    if (analysis.UsageLocations.Length > 0)
+                    {
+                        await Console.Out.WriteLineAsync("Used in:");
+                        foreach (var location in analysis.UsageLocations)
+                        {
+                            await Console.Out.WriteLineAsync($"  - {location}");
+                        }
+                    }
+
+                    if (analysis.HasSecurityIssues)
+                    {
+                        await Console.Out.WriteLineAsync("⚠️ Has security issues!");
+                    }
+
+                    if (!string.IsNullOrEmpty(analysis.RecommendedAction))
+                    {
+                        await Console.Out.WriteLineAsync($"Recommendation: {analysis.RecommendedAction}");
+                    }
+
+                    await Console.Out.WriteLineAsync(new string('-', 80));
+                    await Console.Out.WriteLineAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, analyzeProjectPathOption);
+
         rootCommand.AddCommand(helloCommand);
         rootCommand.AddCommand(setBaseDirCommand);
         rootCommand.AddCommand(listProjectsCommand);
@@ -436,6 +491,7 @@ class Program
         rootCommand.AddCommand(getStateFileLocationCommand);
         rootCommand.AddCommand(throwExceptionCommand);
         rootCommand.AddCommand(semanticSearchCommand);
+        rootCommand.AddCommand(analyzePackagesCommand);
         
         return await rootCommand.InvokeAsync(args);
     }
@@ -478,5 +534,16 @@ class Program
         public string Content { get; set; } = "";
         public float Score { get; set; }
         public string ParentScope { get; set; } = "";
+    }
+
+    private class PackageAnalysis
+    {
+        public string PackageId { get; set; } = "";
+        public string Version { get; set; } = "";
+        public bool IsUsed { get; set; }
+        public string[] UsageLocations { get; set; } = [];
+        public string? LatestVersion { get; set; }
+        public bool HasSecurityIssues { get; set; }
+        public string? RecommendedAction { get; set; }
     }
 }

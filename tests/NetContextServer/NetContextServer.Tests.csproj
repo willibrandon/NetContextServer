@@ -1,42 +1,44 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="MCPSharp" Version="0.9.11" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
-    <PackageReference Include="xunit" Version="2.9.3" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="coverlet.collector" Version="6.0.4">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="MCPSharp" Version="0.9.11" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+		<PackageReference Include="xunit" Version="2.9.3" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="3.0.2">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Xunit.SkippableFact" Version="1.5.23" />
+		<PackageReference Include="NuGet.Protocol" Version="6.9.1" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\NetContextServer\NetContextServer.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\NetContextServer\NetContextServer.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Using Include="Xunit" />
-  </ItemGroup>
+	<ItemGroup>
+		<Using Include="Xunit" />
+	</ItemGroup>
 
-  <!-- Add target to copy the executable to the test output directory -->
-  <Target Name="CopyNetContextServerExecutable" AfterTargets="Build">
-    <ItemGroup>
-      <ExecutableFiles Include="$(SolutionDir)src\NetContextServer\bin\$(Configuration)\$(TargetFramework)\**\NetContextServer*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(ExecutableFiles)" DestinationFolder="$(OutputPath)" />
-    <Message Text="Copied NetContextServer executable to test output directory" Importance="high" />
-  </Target>
+	<!-- Add target to copy the executable to the test output directory -->
+	<Target Name="CopyNetContextServerExecutable" AfterTargets="Build">
+		<ItemGroup>
+			<ExecutableFiles Include="$(SolutionDir)src\NetContextServer\bin\$(Configuration)\$(TargetFramework)\**\NetContextServer*" />
+		</ItemGroup>
+		<Copy SourceFiles="@(ExecutableFiles)" DestinationFolder="$(OutputPath)" />
+		<Message Text="Copied NetContextServer executable to test output directory" Importance="high" />
+	</Target>
 
 </Project>
