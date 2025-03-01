@@ -1,4 +1,4 @@
-using MCPSharp;
+﻿using MCPSharp;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -6,7 +6,7 @@ namespace NetContextServer.Tests;
 
 [Trait("Category", "AI_Generated")]
 [Collection("NetContextServer Tests")]
-public class NetContextServerTests : IDisposable
+public class FileOperationTests : IDisposable
 {
     private readonly string _testDir;
     private readonly string _testProjectPath;
@@ -14,7 +14,7 @@ public class NetContextServerTests : IDisposable
 
     private readonly MCPClient client;
 
-    public NetContextServerTests()
+    public FileOperationTests()
     {
         // Kill any running NetContextServer processes
         try
@@ -54,10 +54,10 @@ public class NetContextServerTests : IDisposable
     public async Task ListFiles_WithValidPath_ReturnsJsonArray()
     {
         await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
-        
+
         var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", _testDir } });
         var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-        
+
         Assert.NotNull(files);
         Assert.Contains(files, f => f.EndsWith(".cs"));
     }
@@ -68,7 +68,7 @@ public class NetContextServerTests : IDisposable
         var invalidPath = Path.Combine(_testDir, "NonExistent");
         var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", invalidPath } });
         var error = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-        
+
         Assert.NotNull(error);
         Assert.Contains(error, e => e.StartsWith("Error:"));
     }
@@ -78,7 +78,7 @@ public class NetContextServerTests : IDisposable
     {
         var content = "test content";
         File.WriteAllText(_testCsFilePath, content);
-        
+
         await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
         var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", _testCsFilePath } });
         Assert.Equal(content, result.Content[0].Text);
@@ -98,7 +98,7 @@ public class NetContextServerTests : IDisposable
     {
         var largeContent = new string('x', 150_000);
         File.WriteAllText(_testCsFilePath, largeContent);
-        
+
         await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
         var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", _testCsFilePath } });
         Assert.Contains("[Truncated]", result.Content[0].Text);
@@ -224,7 +224,7 @@ public class NetContextServerTests : IDisposable
         // Create test files in a project directory structure
         var projectDir = Path.Combine(_testDir, "TestProject");
         Directory.CreateDirectory(projectDir);
-        
+
         var testFiles = new Dictionary<string, string>
         {
             { "Test.cs", "public class Test { }" },
@@ -316,4 +316,4 @@ public class NetContextServerTests : IDisposable
 
         GC.SuppressFinalize(this);
     }
-} 
+}
