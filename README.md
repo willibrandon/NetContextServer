@@ -63,7 +63,7 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-source
 
 4. **Analyze Packages**:
 ```bash
-dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages --project-path "D:\YourProject\src\YourProject\YourProject.csproj"
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages
 ```
 
 ### Search Commands

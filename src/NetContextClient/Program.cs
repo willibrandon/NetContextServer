@@ -421,59 +421,96 @@ class Program
         }, queryOption, topKOption);
 
         // Analyze Packages command
-        var analyzePackagesCommand = new Command("analyze-packages", "Analyze NuGet packages in a project");
-        var analyzeProjectPathOption = new Option<string>("--project-path", "The project path to analyze") { IsRequired = true };
-        analyzePackagesCommand.AddOption(analyzeProjectPathOption);
-        analyzePackagesCommand.SetHandler(async (string projectPath) =>
+        var analyzePackagesCommand = new Command("analyze-packages", "Analyze NuGet packages in all projects in the base directory");
+        analyzePackagesCommand.SetHandler(async () =>
         {
             try
             {
-                var result = await client.CallToolAsync("analyze_packages", new Dictionary<string, object> { { "projectPath", projectPath } });
-                var analyses = JsonSerializer.Deserialize<PackageAnalysis[]>(result.Content[0].Text);
-
-                if (analyses == null || analyses.Length == 0)
+                var result = await client.CallToolAsync("analyze_packages", new Dictionary<string, object>());
+                var jsonResponse = result.Content[0].Text;
+                
+                // Try to deserialize to our expected type
+                try
                 {
-                    await Console.Out.WriteLineAsync("No packages found in the project.");
-                    return;
-                }
-
-                await Console.Out.WriteLineAsync($"Found {analyses.Length} package(s):\n");
-                foreach (var analysis in analyses)
-                {
-                    await Console.Out.WriteLineAsync($"Package: {analysis.PackageId}");
-                    await Console.Out.WriteLineAsync($"Current Version: {analysis.Version}");
-                    await Console.Out.WriteLineAsync($"Latest Version: {analysis.LatestVersion ?? "Unknown"}");
-                    await Console.Out.WriteLineAsync($"Status: {(analysis.IsUsed ? "Used" : "Unused")}");
+                    // Try to deserialize as JDocument first to inspect the structure
+                    var jsonObj = JsonDocument.Parse(jsonResponse);
+                    var rootElement = jsonObj.RootElement;
                     
-                    if (analysis.UsageLocations.Length > 0)
+                    // Check if the response is an error message
+                    if (rootElement.ValueKind == JsonValueKind.Object && 
+                        rootElement.TryGetProperty("Error", out var errorElement))
                     {
-                        await Console.Out.WriteLineAsync("Used in:");
-                        foreach (var location in analysis.UsageLocations)
+                        await Console.Out.WriteLineAsync($"Error from server: {errorElement}");
+                        return;
+                    }
+                    
+                    // Check if the response is a message
+                    if (rootElement.ValueKind == JsonValueKind.Object && 
+                        rootElement.TryGetProperty("Message", out var messageElement))
+                    {
+                        await Console.Out.WriteLineAsync($"Message from server: {messageElement}");
+                        return;
+                    }
+                    
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+                    var projectAnalyses = JsonSerializer.Deserialize<List<ProjectPackageAnalysis>>(jsonResponse, options);
+
+                    if (projectAnalyses == null || projectAnalyses.Count == 0)
+                    {
+                        await Console.Out.WriteLineAsync("No projects or packages found in the base directory.");
+                        return;
+                    }
+
+                    await Console.Out.WriteLineAsync($"Found {projectAnalyses.Count} project(s) with packages:\n");
+
+                    foreach (var projectAnalysis in projectAnalyses)
+                    {
+                        await Console.Out.WriteLineAsync($"Project: {projectAnalysis.ProjectPath}");
+                        
+                        if (projectAnalysis.Packages.Count == 0)
                         {
-                            await Console.Out.WriteLineAsync($"  - {location}");
+                            await Console.Out.WriteLineAsync("  No packages found in this project.\n");
+                            continue;
                         }
-                    }
 
-                    if (analysis.HasSecurityIssues)
-                    {
-                        await Console.Out.WriteLineAsync("⚠️ Has security issues!");
+                        await Console.Out.WriteLineAsync($"  Found {projectAnalysis.Packages.Count} package(s):");
+                        
+                        foreach (var package in projectAnalysis.Packages)
+                        {
+                            var statusSymbol = package.HasSecurityIssues ? "🔴" : 
+                                              (package.HasUpdate ? "🔄" : 
+                                              (!package.IsUsed ? "⚠️" : "✅"));
+                            
+                            await Console.Out.WriteLineAsync($"  - {statusSymbol} {package.PackageId} ({package.Version}{(package.HasUpdate ? $" → {package.LatestVersion}" : "")})");
+                            
+                            if (!string.IsNullOrEmpty(package.RecommendedAction))
+                            {
+                                await Console.Out.WriteLineAsync($"    {package.RecommendedAction}");
+                            }
+                            
+                            if (package.UsageLocations.Count > 0)
+                            {
+                                await Console.Out.WriteLineAsync($"    Used in {package.UsageLocations.Count} location(s)");
+                            }
+                        }
+                        
+                        await Console.Out.WriteLineAsync();
                     }
-
-                    if (!string.IsNullOrEmpty(analysis.RecommendedAction))
-                    {
-                        await Console.Out.WriteLineAsync($"Recommendation: {analysis.RecommendedAction}");
-                    }
-
-                    await Console.Out.WriteLineAsync(new string('-', 80));
-                    await Console.Out.WriteLineAsync();
+                }
+                catch (JsonException ex)
+                {
+                    await Console.Error.WriteLineAsync($"Error parsing JSON response: {ex.Message}");
+                    await Console.Error.WriteLineAsync("Please ensure the server and client models are compatible.");
                 }
             }
             catch (Exception ex)
             {
-                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
-                Environment.Exit(1);
+                await Console.Error.WriteLineAsync($"Error analyzing packages: {ex.Message}");
             }
-        }, analyzeProjectPathOption);
+        });
 
         rootCommand.AddCommand(helloCommand);
         rootCommand.AddCommand(setBaseDirCommand);
@@ -536,14 +573,22 @@ class Program
         public string ParentScope { get; set; } = "";
     }
 
+    private class ProjectPackageAnalysis
+    {
+        public string ProjectPath { get; set; } = "";
+        public List<PackageAnalysis> Packages { get; set; } = new List<PackageAnalysis>();
+    }
+
     private class PackageAnalysis
     {
         public string PackageId { get; set; } = "";
         public string Version { get; set; } = "";
         public bool IsUsed { get; set; }
-        public string[] UsageLocations { get; set; } = [];
+        public List<string> UsageLocations { get; set; } = new List<string>();
         public string? LatestVersion { get; set; }
         public bool HasSecurityIssues { get; set; }
         public string? RecommendedAction { get; set; }
+        public bool HasUpdate { get; set; }
+        public List<string> TransitiveDependencies { get; set; } = new List<string>();
     }
 }

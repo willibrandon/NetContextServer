@@ -62,34 +62,50 @@ namespace NetContextServer
             IgnorePatternService.AddIgnorePatterns(patterns);
 
         /// <summary>
-        /// Analyzes NuGet packages in a specified project for usage and available updates.
+        /// Analyzes NuGet packages in all projects found in the base directory.
         /// </summary>
-        /// <param name="projectPath">The absolute path to the .csproj file to analyze (e.g. 'D:/path/to/project/Project.csproj')</param>
         /// <returns>JSON array of package analyses including usage locations, versions, and update recommendations</returns>
         /// <exception cref="DirectoryNotFoundException">Thrown when the base directory is not set</exception>
-        /// <exception cref="FileNotFoundException">Thrown when the project file cannot be found</exception>
         [McpFunction("analyze_packages",
-            "Analyzes NuGet packages in the specified project. Returns detailed information about package usage, versions, and update " +
-            "recommendations. Requires absolute path to the .csproj file.")]
-        public static async Task<string> AnalyzePackagesAsync([McpParameter(
-            required: true,
-            description: "The absolute path to the .csproj file to analyze (e.g. 'D:/path/to/project/Project.csproj')")] string projectPath)
+            "Analyzes NuGet packages in all projects found in the base directory. Returns detailed information about package usage, versions, and update " +
+            "recommendations.")]
+        public static async Task<string> AnalyzePackagesAsync()
         {
             try
             {
                 FileValidationService.EnsureBaseDirectorySet();
                 var baseDir = FileValidationService.BaseDirectory;
-                var analyzer = new PackageAnalyzerService(baseDir);
-                var packages = await analyzer.GetPackageReferencesAsync(projectPath);
-                var analyses = new List<PackageAnalysis>();
-
-                foreach (var package in packages)
+                
+                // Find all .csproj files in the base directory
+                var projectFiles = Directory.GetFiles(baseDir, "*.csproj", SearchOption.AllDirectories);
+                
+                if (projectFiles.Length == 0)
                 {
-                    var analysis = await analyzer.AnalyzePackageAsync(package);
-                    analyses.Add(analysis);
+                    return JsonSerializer.Serialize(new { Message = "No project files found in the base directory." });
                 }
-
-                return JsonSerializer.Serialize(analyses, new JsonSerializerOptions
+                
+                var analyzer = new PackageAnalyzerService(baseDir);
+                var allAnalyses = new List<ProjectPackageAnalysis>();
+                
+                foreach (var projectFile in projectFiles)
+                {
+                    var packages = await analyzer.GetPackageReferencesAsync(projectFile);
+                    var analyses = new List<PackageAnalysis>();
+                    
+                    foreach (var package in packages)
+                    {
+                        var analysis = await analyzer.AnalyzePackageAsync(package);
+                        analyses.Add(analysis);
+                    }
+                    
+                    allAnalyses.Add(new ProjectPackageAnalysis
+                    {
+                        ProjectPath = FileValidationService.GetRelativePath(projectFile),
+                        Packages = analyses
+                    });
+                }
+                
+                return JsonSerializer.Serialize(allAnalyses, new JsonSerializerOptions
                 {
                     WriteIndented = true
                 });
