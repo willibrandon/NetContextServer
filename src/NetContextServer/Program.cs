@@ -28,6 +28,12 @@ namespace NetContextServer
         private static HashSet<string> UserIgnorePatterns { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         private static readonly string StateFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ignore_patterns.json");
 
+        // Shared JsonSerializerOptions instance to improve performance
+        private static readonly JsonSerializerOptions DefaultJsonOptions = new()
+        {
+            WriteIndented = true
+        };
+
         /// <summary>
         /// Initializes the NetContextServer static instance.
         /// </summary>
@@ -81,7 +87,7 @@ namespace NetContextServer
                 
                 if (projectFiles.Length == 0)
                 {
-                    return JsonSerializer.Serialize(new { Message = "No project files found in the base directory." });
+                    return JsonSerializer.Serialize(new { Message = "No project files found in the base directory." }, DefaultJsonOptions);
                 }
                 
                 var analyzer = new PackageAnalyzerService(baseDir);
@@ -105,14 +111,11 @@ namespace NetContextServer
                     });
                 }
                 
-                return JsonSerializer.Serialize(allAnalyses, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
+                return JsonSerializer.Serialize(allAnalyses, DefaultJsonOptions);
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Serialize(new { Error = ex.Message });
+                return JsonSerializer.Serialize(new { Error = ex.Message }, DefaultJsonOptions);
             }
         }
 
@@ -128,6 +131,40 @@ namespace NetContextServer
             "Removes all user-defined ignore patterns from both memory and the persistent state file. Returns a JSON confirmation " +
             "message of patterns cleared.")]
         public static string ClearIgnorePatterns() => IgnorePatternService.ClearIgnorePatterns();
+
+        /// <summary>
+        /// Retrieves the current base directory used for all file operations.
+        /// </summary>
+        /// <returns>JSON object containing the base directory path and whether it exists</returns>
+        /// <remarks>
+        /// The base directory serves as the root for relative path calculations and file searches.
+        /// All file operations are restricted to this directory and its subdirectories for security.
+        /// </remarks>
+        /// <example>
+        /// Example response:
+        /// {
+        ///   "BaseDirectory": "D:\\Projects\\MyApp",
+        ///   "Exists": true
+        /// }
+        /// </example>
+        [McpFunction("get_base_directory",
+            "Returns the current base directory used for all file operations. This is the root directory for relative path calculations.")]
+        public static string GetBaseDirectory()
+        {
+            try
+            {
+                return JsonSerializer.Serialize(new
+                {
+                    BaseDirectory,
+                    Exists = Directory.Exists(BaseDirectory)
+                },
+                DefaultJsonOptions);
+            }
+            catch (Exception ex)
+            {
+                return JsonSerializer.Serialize(new { Error = ex.Message }, DefaultJsonOptions);
+            }
+        }
 
         /// <summary>
         /// Retrieves the current list of active ignore patterns.
@@ -175,7 +212,7 @@ namespace NetContextServer
         public static string ListFiles([McpParameter(
             required: true,
             description: "Absolute path to the project directory containing the .cs files")] string projectPath) =>
-            JsonSerializer.Serialize(FileService.ListFiles(projectPath));
+            JsonSerializer.Serialize(FileService.ListFiles(projectPath), DefaultJsonOptions);
 
         /// <summary>
         /// Scans the current solution for all project files.
@@ -188,7 +225,8 @@ namespace NetContextServer
         [McpFunction("list_projects",
             "Scans the current solution and returns a JSON array of all .csproj files found. Useful for identifying all projects in " +
             "the current solution.")]
-        public static string ListProjects() => JsonSerializer.Serialize(FileService.ListProjects());
+        public static string ListProjects() => 
+            JsonSerializer.Serialize(FileService.ListProjects(), DefaultJsonOptions);
 
         /// <summary>
         /// Searches a specific directory for project files.
@@ -205,7 +243,7 @@ namespace NetContextServer
         public static string ListProjectsInDirectory([McpParameter(
             required: true,
             description: "Absolute path to the directory to search for .csproj files")] string directory) => 
-            JsonSerializer.Serialize(FileService.ListProjectsInDirectory(directory));
+            JsonSerializer.Serialize(FileService.ListProjectsInDirectory(directory), DefaultJsonOptions);
 
         /// <summary>
         /// Lists all solution files in the base directory.
@@ -218,7 +256,8 @@ namespace NetContextServer
         [McpFunction("list_solutions",
             "Returns a JSON array of all .sln files found in the base directory. Useful for identifying solution files in the " +
             "workspace.")]
-        public static string ListSolutions() => JsonSerializer.Serialize(FileService.ListSolutions());
+        public static string ListSolutions() => 
+            JsonSerializer.Serialize(FileService.ListSolutions(), DefaultJsonOptions);
 
         /// <summary>
         /// Lists all source files in a project directory.
@@ -236,7 +275,7 @@ namespace NetContextServer
         public static string ListSourceFiles([McpParameter(
             required: true,
             description: "Absolute path to the project directory to scan for source files")] string projectDir) => 
-            JsonSerializer.Serialize(FileService.ListSourceFiles(projectDir));
+            JsonSerializer.Serialize(FileService.ListSourceFiles(projectDir), DefaultJsonOptions);
 
         /// <summary>
         /// Reads and returns the contents of a specified file.
@@ -288,7 +327,7 @@ namespace NetContextServer
         public static string SearchCode([McpParameter(
             required: true,
             description: "The exact text string to search for in the codebase")] string searchText) => 
-            JsonSerializer.Serialize(CodeSearchService.SearchCode(searchText));
+            JsonSerializer.Serialize(CodeSearchService.SearchCode(searchText), DefaultJsonOptions);
 
         /// <summary>
         /// Performs a semantic similarity search across the codebase.
@@ -319,7 +358,7 @@ namespace NetContextServer
             }
             catch (Exception ex)
             {
-                return JsonSerializer.Serialize(new { Error = ex.Message });
+                return JsonSerializer.Serialize(new { Error = ex.Message }, DefaultJsonOptions);
             }
         }
 
@@ -341,10 +380,12 @@ namespace NetContextServer
             description: "Absolute path to set as the new base directory. Must be a valid, existing directory")] string directory)
         {
             if (!Directory.Exists(directory))
-                return JsonSerializer.Serialize(new[] { "Error: Directory not found" });
+            {
+                return JsonSerializer.Serialize(new[] { "Error: Directory not found" }, DefaultJsonOptions);
+            }
 
             FileValidationService.SetBaseDirectory(directory);
-            return JsonSerializer.Serialize(new[] { $"Base directory set to: {directory}" });
+            return JsonSerializer.Serialize(new[] { $"Base directory set to: {directory}" }, DefaultJsonOptions);
         }
 
         /// <summary>

@@ -49,6 +49,61 @@ class Program
             }
         }, dirOption);
 
+        // Get Base Directory command
+        var getBaseDirCommand = new Command("get-base-dir", "Get the current base directory");
+        getBaseDirCommand.SetHandler(async () =>
+        {
+            try
+            {
+                var result = await client.CallToolAsync("get_base_directory", new Dictionary<string, object>());
+                var jsonResponse = result.Content[0].Text;
+                
+                try
+                {
+                    // Try to deserialize as JDocument first to inspect the structure
+                    var jsonObj = JsonDocument.Parse(jsonResponse);
+                    var rootElement = jsonObj.RootElement;
+                    
+                    // Check if the response is an error message
+                    if (rootElement.ValueKind == JsonValueKind.Object && 
+                        rootElement.TryGetProperty("Error", out var errorElement))
+                    {
+                        await Console.Error.WriteLineAsync($"Error: {errorElement}");
+                        return;
+                    }
+                    
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+                    
+                    var response = JsonSerializer.Deserialize<BaseDirectoryResponse>(jsonResponse, options);
+                    
+                    if (response != null)
+                    {
+                        await Console.Out.WriteLineAsync($"Current base directory: {response.BaseDirectory}");
+                        
+                        if (!response.Exists)
+                        {
+                            await Console.Out.WriteLineAsync("⚠️ Warning: This directory does not exist!");
+                        }
+                    }
+                    else
+                    {
+                        await Console.Error.WriteLineAsync("Failed to parse response from server.");
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    await Console.Error.WriteLineAsync($"Error parsing JSON response: {ex.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+            }
+        });
+
         // List Projects command
         var listProjectsCommand = new Command("list-projects", "List all projects in the solution");
         listProjectsCommand.SetHandler(async () =>
@@ -427,7 +482,7 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("analyze_packages", new Dictionary<string, object>());
+                var result = await client.CallToolAsync("analyze_packages", []);
                 var jsonResponse = result.Content[0].Text;
                 
                 // Try to deserialize to our expected type
@@ -515,6 +570,7 @@ class Program
 
         rootCommand.AddCommand(helloCommand);
         rootCommand.AddCommand(setBaseDirCommand);
+        rootCommand.AddCommand(getBaseDirCommand);
         rootCommand.AddCommand(listProjectsCommand);
         rootCommand.AddCommand(listFilesCommand);
         rootCommand.AddCommand(openFileCommand);

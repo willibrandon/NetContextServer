@@ -51,17 +51,22 @@ For semantic search functionality, you need to set up the following environment 
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "D:\YourProject"
 ```
 
-2. **List Projects**:
+2. **Get Base Directory**:
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- get-base-dir
+```
+
+3. **List Projects**:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-projects-in-dir --directory "D:\YourProject\src"
 ```
 
-3. **List Source Files**:
+4. **List Source Files**:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-source-files --project-dir "D:\YourProject\src\YourProject"
 ```
 
-4. **Analyze Packages**:
+5. **Analyze Packages**:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages
 ```
