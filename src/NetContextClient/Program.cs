@@ -1,4 +1,5 @@
 ﻿using MCPSharp;
+using NetContextClient.Models;
 using System.CommandLine;
 using System.Text.Json;
 
@@ -531,64 +532,5 @@ class Program
         rootCommand.AddCommand(analyzePackagesCommand);
         
         return await rootCommand.InvokeAsync(args);
-    }
-
-    private class IgnorePatternsResponse
-    {
-        public string[] DefaultPatterns { get; set; } = [];
-        public string[] UserPatterns { get; set; } = [];
-        public string[] AllPatterns { get; set; } = [];
-    }
-
-    private class AddIgnorePatternsResponse : IgnorePatternsResponse
-    {
-        public string[] ValidPatternsAdded { get; set; } = [];
-        public string[] InvalidPatterns { get; set; } = [];
-    }
-
-    private class RemoveIgnorePatternsResponse : IgnorePatternsResponse
-    {
-        public string[] RemovedPatterns { get; set; } = [];
-        public string[] NotFoundPatterns { get; set; } = [];
-        public string[] DefaultPatternsSkipped { get; set; } = [];
-    }
-
-    private class StateFileLocationResponse
-    {
-        public string StateFilePath { get; set; } = "";
-    }
-
-    private class SemanticSearchResponse
-    {
-        public SemanticSearchResult[] Results { get; set; } = [];
-    }
-
-    private class SemanticSearchResult
-    {
-        public string FilePath { get; set; } = "";
-        public int StartLine { get; set; }
-        public int EndLine { get; set; }
-        public string Content { get; set; } = "";
-        public float Score { get; set; }
-        public string ParentScope { get; set; } = "";
-    }
-
-    private class ProjectPackageAnalysis
-    {
-        public string ProjectPath { get; set; } = "";
-        public List<PackageAnalysis> Packages { get; set; } = new List<PackageAnalysis>();
-    }
-
-    private class PackageAnalysis
-    {
-        public string PackageId { get; set; } = "";
-        public string Version { get; set; } = "";
-        public bool IsUsed { get; set; }
-        public List<string> UsageLocations { get; set; } = new List<string>();
-        public string? LatestVersion { get; set; }
-        public bool HasSecurityIssues { get; set; }
-        public string? RecommendedAction { get; set; }
-        public bool HasUpdate { get; set; }
-        public List<string> TransitiveDependencies { get; set; } = new List<string>();
     }
 }
