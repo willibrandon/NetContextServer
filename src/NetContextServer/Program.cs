@@ -153,10 +153,13 @@ namespace NetContextServer
         {
             try
             {
+                // Use FileValidationService.BaseDirectory for consistency
+                var baseDir = FileValidationService.BaseDirectory;
+                
                 return JsonSerializer.Serialize(new
                 {
-                    BaseDirectory,
-                    Exists = Directory.Exists(BaseDirectory)
+                    BaseDirectory = baseDir,
+                    Exists = Directory.Exists(baseDir)
                 },
                 DefaultJsonOptions);
             }
@@ -384,7 +387,10 @@ namespace NetContextServer
                 return JsonSerializer.Serialize(new[] { "Error: Directory not found" }, DefaultJsonOptions);
             }
 
+            // Update both the FileValidationService.BaseDirectory and NetContextServer.BaseDirectory
             FileValidationService.SetBaseDirectory(directory);
+            BaseDirectory = directory; // Ensure our static property is also updated
+            
             return JsonSerializer.Serialize(new[] { $"Base directory set to: {directory}" }, DefaultJsonOptions);
         }
 
