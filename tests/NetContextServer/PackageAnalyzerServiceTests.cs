@@ -55,7 +55,7 @@ public class PackageAnalyzerServiceTests : IDisposable
         await CreateTestProjectFileAsync(projectContent);
 
         // Act
-        var packages = await _service.GetPackageReferencesAsync(_testProjectPath);
+        var packages = await PackageAnalyzerService.GetPackageReferencesAsync(_testProjectPath);
 
         // Assert
         Assert.Equal(2, packages.Count);
@@ -75,7 +75,7 @@ public class PackageAnalyzerServiceTests : IDisposable
         await CreateTestProjectFileAsync(projectContent);
 
         // Act
-        var packages = await _service.GetPackageReferencesAsync(_testProjectPath);
+        var packages = await PackageAnalyzerService.GetPackageReferencesAsync(_testProjectPath);
 
         // Assert
         Assert.Empty(packages);
@@ -88,7 +88,7 @@ public class PackageAnalyzerServiceTests : IDisposable
         var invalidPath = Path.Combine(_testProjectDir, "invalid", "path", "project.csproj");
 
         // Act
-        var packages = await _service.GetPackageReferencesAsync(invalidPath);
+        var packages = await PackageAnalyzerService.GetPackageReferencesAsync(invalidPath);
 
         // Assert
         Assert.Empty(packages);

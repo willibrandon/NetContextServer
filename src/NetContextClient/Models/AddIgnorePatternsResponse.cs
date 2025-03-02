@@ -6,5 +6,6 @@ namespace NetContextClient.Models;
 public class AddIgnorePatternsResponse : IgnorePatternsResponse
 {
     public string[] ValidPatternsAdded { get; set; } = [];
+
     public string[] InvalidPatterns { get; set; } = [];
 } 

@@ -5,6 +5,7 @@ namespace NetContextClient.Models;
 /// </summary>
 public class ProjectPackageAnalysis
 {
-    public string ProjectPath { get; set; } = "";
-    public List<PackageAnalysis> Packages { get; set; } = new List<PackageAnalysis>();
+    public string ProjectPath { get; set; } = string.Empty;
+
+    public List<PackageAnalysis> Packages { get; set; } = [];
 } 

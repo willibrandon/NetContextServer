@@ -89,7 +89,7 @@ namespace NetContextServer
                 
                 foreach (var projectFile in projectFiles)
                 {
-                    var packages = await analyzer.GetPackageReferencesAsync(projectFile);
+                    var packages = await PackageAnalyzerService.GetPackageReferencesAsync(projectFile);
                     var analyses = new List<PackageAnalysis>();
                     
                     foreach (var package in packages)

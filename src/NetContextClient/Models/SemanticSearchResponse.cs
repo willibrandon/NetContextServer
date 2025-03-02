@@ -6,4 +6,4 @@ namespace NetContextClient.Models;
 public class SemanticSearchResponse
 {
     public SemanticSearchResult[] Results { get; set; } = [];
-} 
+}

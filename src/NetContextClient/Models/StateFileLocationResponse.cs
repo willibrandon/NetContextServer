@@ -5,5 +5,5 @@ namespace NetContextClient.Models;
 /// </summary>
 public class StateFileLocationResponse
 {
-    public string StateFilePath { get; set; } = "";
-} 
+    public string StateFilePath { get; set; } = string.Empty;
+}

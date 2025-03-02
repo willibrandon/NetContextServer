@@ -6,6 +6,8 @@ namespace NetContextClient.Models;
 public class IgnorePatternsResponse
 {
     public string[] DefaultPatterns { get; set; } = [];
+
     public string[] UserPatterns { get; set; } = [];
+
     public string[] AllPatterns { get; set; } = [];
 } 

@@ -13,7 +13,7 @@ public class PackageAnalyzerService(string? baseDirectory = null)
     private static readonly SourceCacheContext Cache = new();
     private readonly string _baseDirectory = baseDirectory ?? Directory.GetCurrentDirectory();
 
-    public async Task<List<PackageReference>> GetPackageReferencesAsync(string projectPath)
+    public static async Task<List<PackageReference>> GetPackageReferencesAsync(string projectPath)
     {
         var packages = new List<PackageReference>();
         
