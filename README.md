@@ -171,6 +171,8 @@ To use with Cursor AI:
 1. Configure Cursor AI to use the NetContextServer as its MCP provider
 2. Enjoy enhanced code assistance with full codebase context
 
+For testing and debugging MCP interactions, you can use [CursorMCPMonitor](https://github.com/willibrandon/CursorMCPMonitor), a real-time monitoring tool that helps track and analyze communications between MCP clients and servers.
+
 The Model Context Protocol enables AI tools to request specific information about your codebase, making the AI's suggestions more relevant and accurate to your specific project structure and coding patterns.
 
 ## Error Handling
