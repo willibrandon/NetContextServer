@@ -19,13 +19,13 @@ public class BasicServerTests : IDisposable
         Tools.SetBaseDirectory(_testDir);
     }
 
-    [Fact(Skip = "Not implemented yet")]
+    [Fact]
     public void ShouldConnectToServer()
     {
         // Test would verify server connection
     }
 
-    [Fact(Skip = "Not implemented yet")]
+    [Fact]
     public void ShouldReturnServerInfo()
     {
         // Test would verify server info

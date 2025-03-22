@@ -97,35 +97,3 @@ public class BaseDirectoryTests
         public bool Exists { get; set; }
     }
 }
-
-// Mock MCP server tools class that calls the real services directly
-internal static partial class Tools
-{
-    private static string _baseDirectory = "";
-
-    public static string[] SetBaseDirectory(string directory)
-    {
-        try
-        {
-            if (!Directory.Exists(directory))
-                return new[] { "Error: Directory not found" };
-            
-            // Just set the directory in our test implementation
-            _baseDirectory = directory;
-            return new[] { $"Base directory set to: {directory}" };
-        }
-        catch (Exception ex)
-        {
-            return new[] { $"Error: {ex.Message}" };
-        }
-    }
-    
-    public static string GetBaseDirectory()
-    {
-        return JsonSerializer.Serialize(new
-        {
-            BaseDirectory = _baseDirectory,
-            Exists = Directory.Exists(_baseDirectory)
-        });
-    }
-} 
