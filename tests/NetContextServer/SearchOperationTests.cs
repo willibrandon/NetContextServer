@@ -68,33 +68,4 @@ public class SearchOperationTests : IDisposable
             // Ignore cleanup errors
         }
     }
-}
-
-// Add search operation methods to the Tools class
-internal static partial class Tools
-{
-    public static string[] SearchCode(string searchText)
-    {
-        var results = new List<string>();
-        
-        foreach (var pattern in new[] { "*.cs", "*.vb", "*.fs", "*.fsx", "*.fsi", "*.cshtml", "*.vbhtml", "*.razor" })
-        {
-            var files = Directory.GetFiles(_baseDirectory, pattern, SearchOption.AllDirectories)
-                .Where(f => !ShouldIgnoreFile(f));
-            
-            foreach (var file in files)
-            {
-                var lines = File.ReadAllLines(file);
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    if (lines[i].Contains(searchText, StringComparison.OrdinalIgnoreCase))
-                    {
-                        results.Add($"{file}:{i + 1}: {lines[i].Trim()}");
-                    }
-                }
-            }
-        }
-        
-        return results.ToArray();
-    }
 } 
