@@ -7,12 +7,30 @@ using System.Xml.Linq;
 
 namespace NetContextServer.Services;
 
-public class PackageAnalyzerService(string? baseDirectory = null)
+/// <summary>
+/// Provides functionality for analyzing NuGet package references in .NET projects,
+/// including version checking, usage analysis, and update recommendations.
+/// </summary>
+public class PackageAnalyzerService
 {
     private static readonly SourceRepository NuGetRepository = Repository.Factory.GetCoreV3("https://api.nuget.org/v3/index.json");
     private static readonly SourceCacheContext Cache = new();
-    private readonly string _baseDirectory = baseDirectory ?? Directory.GetCurrentDirectory();
+    private readonly string _baseDirectory;
 
+    /// <summary>
+    /// Initializes a new instance of the PackageAnalyzerService class.
+    /// </summary>
+    /// <param name="baseDirectory">The base directory for package analysis. If null, uses the current directory.</param>
+    public PackageAnalyzerService(string? baseDirectory = null)
+    {
+        _baseDirectory = baseDirectory ?? Directory.GetCurrentDirectory();
+    }
+
+    /// <summary>
+    /// Gets all package references from a specified project file.
+    /// </summary>
+    /// <param name="projectPath">The path to the project file (.csproj).</param>
+    /// <returns>A list of PackageReference objects containing package information.</returns>
     public static async Task<List<PackageReference>> GetPackageReferencesAsync(string projectPath)
     {
         var packages = new List<PackageReference>();
@@ -40,6 +58,17 @@ public class PackageAnalyzerService(string? baseDirectory = null)
         return packages;
     }
 
+    /// <summary>
+    /// Analyzes a package reference to determine its usage, available updates, and provides recommendations.
+    /// </summary>
+    /// <param name="package">The package reference to analyze.</param>
+    /// <returns>A PackageAnalysis object containing the analysis results.</returns>
+    /// <remarks>
+    /// The analysis includes:
+    /// - Checking for available updates
+    /// - Detecting package usage in source files
+    /// - Generating recommendations based on usage and updates
+    /// </remarks>
     public async Task<PackageAnalysis> AnalyzePackageAsync(PackageReference package)
     {
         var analysis = new PackageAnalysis

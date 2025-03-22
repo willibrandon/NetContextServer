@@ -3,11 +3,18 @@ using System.Text.Json;
 
 namespace NetContextServer.Services;
 
+/// <summary>
+/// Provides functionality for searching code within the codebase using both text-based and semantic search capabilities.
+/// </summary>
 internal static class CodeSearchService
 {
     private static SemanticSearchService _semanticSearch = new();
     private static bool _isIndexed = false;
 
+    /// <summary>
+    /// Ensures that the codebase is indexed for semantic search capabilities.
+    /// </summary>
+    /// <returns>A task representing the asynchronous indexing operation.</returns>
     private static async Task EnsureIndexedAsync()
     {
         if (!_isIndexed)
@@ -32,6 +39,11 @@ internal static class CodeSearchService
         }
     }
 
+    /// <summary>
+    /// Performs a text-based search across the codebase for exact matches of the search text.
+    /// </summary>
+    /// <param name="searchText">The text to search for in the codebase.</param>
+    /// <returns>An array of strings containing the search results in the format "filepath:line: content".</returns>
     public static string[] SearchCode(string searchText)
     {
         var results = new List<string>();
@@ -57,6 +69,12 @@ internal static class CodeSearchService
         return [.. results];
     }
 
+    /// <summary>
+    /// Performs a semantic search across the indexed codebase using natural language understanding.
+    /// </summary>
+    /// <param name="query">The natural language query to search for.</param>
+    /// <param name="topK">The maximum number of results to return.</param>
+    /// <returns>A JSON string containing the search results with file paths, line numbers, and relevance scores.</returns>
     public static async Task<string> SemanticSearchAsync(string query, int topK)
     {
         await EnsureIndexedAsync();
@@ -86,6 +104,11 @@ internal static class CodeSearchService
         });
     }
 
+    /// <summary>
+    /// Extracts the parent scope (namespace, class, interface, etc.) from a code snippet.
+    /// </summary>
+    /// <param name="content">The code content to analyze.</param>
+    /// <returns>A dot-separated string representing the hierarchical scope of the code.</returns>
     private static string GetParentScope(string content)
     {
         List<string> scopeParts = [];

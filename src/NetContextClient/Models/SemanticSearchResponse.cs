@@ -5,5 +5,8 @@ namespace NetContextClient.Models;
 /// </summary>
 public class SemanticSearchResponse
 {
+    /// <summary>
+    /// Gets or sets the array of semantic search results ordered by relevance.
+    /// </summary>
     public SemanticSearchResult[] Results { get; set; } = [];
 }

@@ -1,7 +1,20 @@
 namespace NetContextServer.Extensions;
 
+/// <summary>
+/// Provides extension methods for string manipulation and code content formatting.
+/// </summary>
 internal static class StringExtensions
 {
+    /// <summary>
+    /// Extracts a name from a line of code following a specified keyword.
+    /// </summary>
+    /// <param name="line">The line of code to analyze.</param>
+    /// <param name="keyword">The keyword that precedes the name to extract.</param>
+    /// <returns>The extracted name, or an empty string if no name is found.</returns>
+    /// <remarks>
+    /// The method looks for the first occurrence of the keyword followed by a space,
+    /// then extracts the text until it encounters a space, opening brace, colon, or parenthesis.
+    /// </remarks>
     public static string ExtractName(string line, string keyword)
     {
         int keywordIndex = line.IndexOf(keyword + " ");
@@ -30,6 +43,15 @@ internal static class StringExtensions
         return string.Empty;
     }
 
+    /// <summary>
+    /// Extracts a method name from a line of code.
+    /// </summary>
+    /// <param name="line">The line of code containing the method declaration.</param>
+    /// <returns>The extracted method name, or an empty string if no method name is found.</returns>
+    /// <remarks>
+    /// The method extracts the text between the last space and the opening parenthesis
+    /// in the line, which typically represents the method name in a method declaration.
+    /// </remarks>
     public static string ExtractMethodName(string line)
     {
         // Extract the method name from the line (text before the opening parenthesis)
@@ -50,6 +72,20 @@ internal static class StringExtensions
         return string.Empty;
     }
 
+    /// <summary>
+    /// Formats code content by managing blank lines and structural elements for improved readability.
+    /// </summary>
+    /// <param name="content">The code content to format.</param>
+    /// <returns>The formatted code content with optimized blank line placement.</returns>
+    /// <remarks>
+    /// This method performs the following formatting operations:
+    /// <list type="bullet">
+    /// <item><description>Removes excessive blank lines</description></item>
+    /// <item><description>Ensures proper structure with opening/closing braces</description></item>
+    /// <item><description>Adds strategic blank lines before significant declarations</description></item>
+    /// <item><description>Maintains a maximum ratio of 25% blank lines</description></item>
+    /// </list>
+    /// </remarks>
     public static string FormatCodeContent(string content)
     {
         // First, remove all blank lines completely
