@@ -15,7 +15,7 @@ public static class PackageTools
         WriteIndented = true
     };
 
-    [McpTool]
+    [McpTool("analyze_packages")]
     [Description("Analyzes NuGet packages in all projects found in the base directory.")]
     public static async Task<string> AnalyzePackagesAsync()
     {

@@ -7,7 +7,7 @@ namespace NetContextServer.Tools;
 [McpToolType]
 public static class GeneralTools
 {
-    [McpTool]
+    [McpTool("hello")]
     [Description("Simple health check endpoint that returns a greeting message.")]
     public static string Hello() => "hello, claude.";
 } 

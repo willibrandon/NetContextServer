@@ -14,14 +14,14 @@ public static class SearchTools
         WriteIndented = true
     };
 
-    [McpTool]
+    [McpTool("search_code")]
     [Description("Performs a text-based search across all code files for the specified text.")]
     public static string SearchCode(
         [Description("The exact text string to search for in the codebase")]
         string searchText) => 
         JsonSerializer.Serialize(CodeSearchService.SearchCode(searchText), DefaultJsonOptions);
 
-    [McpTool]
+    [McpTool("semantic_search")]
     [Description("Performs a semantic similarity search across the codebase using AI.")]
     public static async Task<string> SemanticSearchAsync(
         [Description("Natural language description of the code you're looking for")]
