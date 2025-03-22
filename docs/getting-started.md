@@ -13,7 +13,7 @@ When you're using AI coding assistants like Cursor AI or Claude, they work best 
 ## Quick Start (5 Minutes)
 
 ### Prerequisites
-- .NET 8.0 or later
+- .NET 9.0 or later
 - For semantic search: Azure OpenAI account (optional but recommended)
 - Git
 
