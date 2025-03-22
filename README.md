@@ -22,6 +22,9 @@ NetContextServer empowers AI coding assistants like Cursor AI to deeply understa
 - 🛡️ **Built-in Security**: Safe file access with automatic protection of sensitive data
 - 🚀 **Cursor AI Integration**: Seamless setup with Cursor AI for enhanced coding assistance
 - 📦 **Package Analysis**: Understand your dependencies and get update recommendations
+  - 🔍 **Deep Dependency Visualization**: See transitive dependencies with interactive, color-coded graphs
+  - 🧩 **Smart Grouping**: Visually group related packages for easier navigation
+  - 📊 **Update Recommendations**: Identify outdated packages and security issues
 - ⚡ **Fast & Efficient**: Quick indexing and response times for large codebases
 
 ## 🚀 Quick Start
@@ -148,7 +151,32 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-source
 
 5. **Analyze Packages**:
 ```bash
+# Set your base directory first
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "path/to/your/project"
+
+# Run the package analysis
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages
+```
+
+Example output:
+```
+Project: MyProject.csproj
+  Found 2 package(s):
+  - ✅ Newtonsoft.Json (13.0.1)
+    Used in 5 location(s)
+
+    Dependencies:
+    └─ Newtonsoft.Json
+       └─ System.*
+          └─ System.ComponentModel
+
+  - 🔄 Microsoft.Extensions.DependencyInjection (5.0.2 → 6.0.1)
+    Update available: 6.0.1
+
+    Dependencies:
+    └─ Microsoft.Extensions.DependencyInjection
+       └─ Microsoft.*
+          └─ Microsoft.Extensions.DependencyInjection.Abstractions
 ```
 
 ### Search Commands
@@ -235,7 +263,12 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- add-ignore-
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-projects-in-dir --directory "D:\Projects\MyApp\src"
 ```
 
-4. Search for authentication-related code:
+4. Analyze your project's package dependencies:
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages
+```
+
+5. Search for authentication-related code:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-search --query "user authentication and authorization logic"
 ```

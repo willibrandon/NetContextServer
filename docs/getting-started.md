@@ -97,6 +97,22 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- search-code
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-search --query "how is user data validated"
 ```
 
+### Package Analysis
+```bash
+# First set your base directory
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "path/to/your/project"
+
+# Analyze packages across all projects
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages
+```
+
+The package analysis provides:
+- Visualization of transitive dependencies with color-coded graphs
+- Detection of unused packages (⚠️) and available updates (🔄)
+- Security vulnerability warnings (🔴)
+- Smart grouping of related packages by namespace
+- Recommendations for package maintenance
+
 ### Security Management
 ```bash
 # Add files to ignore

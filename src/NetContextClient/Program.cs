@@ -651,6 +651,40 @@ class Program
                                 {
                                     await Console.Out.WriteLineAsync($"    Used in {package.UsageLocations.Count} location(s)");
                                 }
+                                
+                                // Display dependency graph if available
+                                if (!string.IsNullOrEmpty(package.DependencyGraph))
+                                {
+                                    await Console.Out.WriteLineAsync("\n    Dependencies:");
+                                    var lines = package.DependencyGraph.Split(Environment.NewLine);
+                                    foreach (var line in lines)
+                                    {
+                                        // Color code the dependency graph
+                                        string coloredLine = line;
+                                        if (line.Contains("└─"))
+                                        {
+                                            // Last items in their branch
+                                            coloredLine = $"\u001b[36m{line}\u001b[0m"; // Cyan
+                                        }
+                                        else if (line.Contains("├─"))
+                                        {
+                                            // Middle items
+                                            coloredLine = $"\u001b[32m{line}\u001b[0m"; // Green
+                                        }
+                                        else if (line.Contains(".*"))
+                                        {
+                                            // Group headers
+                                            coloredLine = $"\u001b[33m{line}\u001b[0m"; // Yellow
+                                        }
+                                        
+                                        await Console.Out.WriteLineAsync($"    {coloredLine}");
+                                    }
+                                    await Console.Out.WriteLineAsync();
+                                }
+                                else if (package.TransitiveDependencies.Count > 0)
+                                {
+                                    await Console.Out.WriteLineAsync($"    Has {package.TransitiveDependencies.Count} transitive dependencies");
+                                }
                             }
                             
                             await Console.Out.WriteLineAsync();
