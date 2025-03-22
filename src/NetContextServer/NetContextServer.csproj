@@ -12,10 +12,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MCPSharp" Version="0.9.11" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
 		<PackageReference Include="Microsoft.ML.TorchSharp" Version="0.22.2" />
 		<PackageReference Include="Microsoft.SemanticKernel" Version="1.39.0" />
-		<PackageReference Include="System.Text.Json" Version="9.0.2" />
+		<PackageReference Include="ModelContextProtocol" Version="0.1.0-preview.1.25171.12" />
+		<PackageReference Include="System.Text.Json" Version="9.0.3" />
 		<PackageReference Include="NuGet.Protocol" Version="6.9.1" />
 	</ItemGroup>
 

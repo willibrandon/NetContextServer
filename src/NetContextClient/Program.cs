@@ -1,4 +1,9 @@
-﻿using MCPSharp;
+﻿using ModelContextProtocol;
+using ModelContextProtocol.Client;
+using ModelContextProtocol.Protocol;
+using ModelContextProtocol.Protocol.Types;
+using ModelContextProtocol.Protocol.Transport;
+using ModelContextProtocol.Configuration;
 using NetContextClient.Models;
 using System.CommandLine;
 using System.Text.Json;
@@ -7,7 +12,26 @@ class Program
 {
     static async Task<int> Main(string[] args)
     {
-        using var client = new MCPClient("NetContextClient", "1.0.0", "NetContextServer.exe");
+        // Define client and server configuration
+        var clientOptions = new McpClientOptions
+        {
+            ClientInfo = new() { Name = "NetContextClient", Version = "1.0.0" }
+        };
+
+        var serverConfig = new McpServerConfig
+        {
+            Id = "netcontext",
+            Name = "NetContextServer",
+            TransportType = TransportTypes.StdIo,
+            TransportOptions = new()
+            {
+                ["command"] = "NetContextServer.exe",
+            }
+        };
+
+        // Create MCP client
+        await using var client = await McpClientFactory.CreateAsync(serverConfig, clientOptions);
+        
         var rootCommand = new RootCommand("NetContext Client - MCP client for .NET codebase interaction");
         
         // Hello command
@@ -16,8 +40,9 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("hello");
-                await Console.Out.WriteLineAsync(result.Content[0].Text);
+                var result = await client.CallToolAsync("hello", new Dictionary<string, object>());
+                var content = result.Content.First(c => c.Type == "text");
+                await Console.Out.WriteLineAsync(content.Text);
             }
             catch (Exception ex)
             {
@@ -34,12 +59,13 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", directory } });
+                var result = await client.CallToolAsync("set_base_directory", new() { ["directory"] = directory });
                 await Console.Out.WriteLineAsync("Base directory set successfully. ");
 
-                if (result != null && result.Content != null && result.Content.Length > 0)
+                if (result != null && result.Content != null && result.Content.Count > 0)
                 {
-                    await Console.Out.WriteLineAsync(result.Content[0]?.Text);
+                    var content = result.Content.First(c => c.Type == "text");
+                    await Console.Out.WriteLineAsync(content.Text);
                 }
             }
             catch (Exception ex)
@@ -56,41 +82,44 @@ class Program
             try
             {
                 var result = await client.CallToolAsync("get_base_directory", new Dictionary<string, object>());
-                var jsonResponse = result.Content[0].Text;
+                var jsonResponse = result.Content.First(c => c.Type == "text").Text;
                 
                 try
                 {
-                    // Try to deserialize as JDocument first to inspect the structure
-                    var jsonObj = JsonDocument.Parse(jsonResponse);
-                    var rootElement = jsonObj.RootElement;
-                    
-                    // Check if the response is an error message
-                    if (rootElement.ValueKind == JsonValueKind.Object && 
-                        rootElement.TryGetProperty("Error", out var errorElement))
+                    if (!string.IsNullOrEmpty(jsonResponse))
                     {
-                        await Console.Error.WriteLineAsync($"Error: {errorElement}");
-                        return;
-                    }
-                    
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    };
-                    
-                    var response = JsonSerializer.Deserialize<BaseDirectoryResponse>(jsonResponse, options);
-                    
-                    if (response != null)
-                    {
-                        await Console.Out.WriteLineAsync($"Current base directory: {response.BaseDirectory}");
+                        // Try to deserialize as JDocument first to inspect the structure
+                        var jsonObj = JsonDocument.Parse(jsonResponse);
+                        var rootElement = jsonObj.RootElement;
                         
-                        if (!response.Exists)
+                        // Check if the response is an error message
+                        if (rootElement.ValueKind == JsonValueKind.Object && 
+                            rootElement.TryGetProperty("Error", out var errorElement))
                         {
-                            await Console.Out.WriteLineAsync("⚠️ Warning: This directory does not exist!");
+                            await Console.Error.WriteLineAsync($"Error: {errorElement}");
+                            return;
                         }
-                    }
-                    else
-                    {
-                        await Console.Error.WriteLineAsync("Failed to parse response from server.");
+                        
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        };
+                        
+                        var response = JsonSerializer.Deserialize<BaseDirectoryResponse>(jsonResponse, options);
+                        
+                        if (response != null)
+                        {
+                            await Console.Out.WriteLineAsync($"Current base directory: {response.BaseDirectory}");
+                            
+                            if (!response.Exists)
+                            {
+                                await Console.Out.WriteLineAsync("⚠️ Warning: This directory does not exist!");
+                            }
+                        }
+                        else
+                        {
+                            await Console.Error.WriteLineAsync("Failed to parse response from server.");
+                        }
                     }
                 }
                 catch (JsonException ex)
@@ -110,11 +139,15 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("list_projects");
-                var projects = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-                foreach (var project in projects!)
+                var result = await client.CallToolAsync("list_projects", new Dictionary<string, object>());
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync(project);
+                    var projects = JsonSerializer.Deserialize<string[]>(jsonText);
+                    foreach (var project in projects!)
+                    {
+                        await Console.Out.WriteLineAsync(project);
+                    }
                 }
             }
             catch (Exception ex)
@@ -132,11 +165,15 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", projectPath } });
-                var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-                foreach (var file in files!)
+                var result = await client.CallToolAsync("list_files", new() { ["projectPath"] = projectPath });
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync(file);
+                    var files = JsonSerializer.Deserialize<string[]>(jsonText);
+                    foreach (var file in files!)
+                    {
+                        await Console.Out.WriteLineAsync(file);
+                    }
                 }
             }
             catch (Exception ex)
@@ -154,8 +191,8 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", filePath } });
-                await Console.Out.WriteLineAsync(result.Content[0].Text);
+                var result = await client.CallToolAsync("open_file", new() { ["filePath"] = filePath });
+                await Console.Out.WriteLineAsync(result.Content.First(c => c.Type == "text").Text);
             }
             catch (Exception ex)
             {
@@ -172,11 +209,15 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("search_code", new Dictionary<string, object> { { "searchText", searchText } });
-                var matches = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-                foreach (var match in matches!)
+                var result = await client.CallToolAsync("search_code", new() { ["searchText"] = searchText });
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync(match);
+                    var matches = JsonSerializer.Deserialize<string[]>(jsonText);
+                    foreach (var match in matches!)
+                    {
+                        await Console.Out.WriteLineAsync(match);
+                    }
                 }
             }
             catch (Exception ex)
@@ -192,11 +233,15 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("list_solutions");
-                var solutions = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-                foreach (var solution in solutions!)
+                var result = await client.CallToolAsync("list_solutions", new Dictionary<string, object>());
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync(solution);
+                    var solutions = JsonSerializer.Deserialize<string[]>(jsonText);
+                    foreach (var solution in solutions!)
+                    {
+                        await Console.Out.WriteLineAsync(solution);
+                    }
                 }
             }
             catch (Exception ex)
@@ -214,11 +259,15 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("list_projects_in_dir", new Dictionary<string, object> { { "directory", directory } });
-                var projects = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-                foreach (var project in projects!)
+                var result = await client.CallToolAsync("list_projects_in_dir", new() { ["directory"] = directory });
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync(project);
+                    var projects = JsonSerializer.Deserialize<string[]>(jsonText);
+                    foreach (var project in projects!)
+                    {
+                        await Console.Out.WriteLineAsync(project);
+                    }
                 }
             }
             catch (Exception ex)
@@ -236,11 +285,15 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", projectDir } });
-                var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-                foreach (var file in files!.Where(f => !f.Contains("\\obj\\")))
+                var result = await client.CallToolAsync("list_source_files", new() { ["projectDir"] = projectDir });
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync(file);
+                    var files = JsonSerializer.Deserialize<string[]>(jsonText);
+                    foreach (var file in files!.Where(f => !f.Contains("\\obj\\")))
+                    {
+                        await Console.Out.WriteLineAsync(file);
+                    }
                 }
             }
             catch (Exception ex)
@@ -258,33 +311,37 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("add_ignore_patterns", new Dictionary<string, object> { { "patterns", patterns } });
-                var response = JsonSerializer.Deserialize<AddIgnorePatternsResponse>(result.Content[0].Text);
-                
-                if (response!.InvalidPatterns.Length > 0)
+                var result = await client.CallToolAsync("add_ignore_patterns", new() { ["patterns"] = patterns });
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync("Invalid patterns (not added):");
-                    foreach (var pattern in response.InvalidPatterns)
+                    var response = JsonSerializer.Deserialize<AddIgnorePatternsResponse>(jsonText);
+                    
+                    if (response!.InvalidPatterns.Length > 0)
                     {
-                        await Console.Out.WriteLineAsync($"  {pattern}");
+                        await Console.Out.WriteLineAsync("Invalid patterns (not added):");
+                        foreach (var pattern in response.InvalidPatterns)
+                        {
+                            await Console.Out.WriteLineAsync($"  {pattern}");
+                        }
+                        await Console.Out.WriteLineAsync();
                     }
-                    await Console.Out.WriteLineAsync();
-                }
 
-                if (response.ValidPatternsAdded.Length > 0)
-                {
-                    await Console.Out.WriteLineAsync("Added user patterns:");
-                    foreach (var pattern in response.ValidPatternsAdded)
+                    if (response.ValidPatternsAdded.Length > 0)
+                    {
+                        await Console.Out.WriteLineAsync("Added user patterns:");
+                        foreach (var pattern in response.ValidPatternsAdded)
+                        {
+                            await Console.Out.WriteLineAsync($"  {pattern}");
+                        }
+                        await Console.Out.WriteLineAsync();
+                    }
+                    
+                    await Console.Out.WriteLineAsync("All active patterns:");
+                    foreach (var pattern in response.AllPatterns)
                     {
                         await Console.Out.WriteLineAsync($"  {pattern}");
                     }
-                    await Console.Out.WriteLineAsync();
-                }
-                
-                await Console.Out.WriteLineAsync("All active patterns:");
-                foreach (var pattern in response.AllPatterns)
-                {
-                    await Console.Out.WriteLineAsync($"  {pattern}");
                 }
             }
             catch (Exception ex)
@@ -302,43 +359,47 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("remove_ignore_patterns", new Dictionary<string, object> { { "patterns", patterns } });
-                var response = JsonSerializer.Deserialize<RemoveIgnorePatternsResponse>(result.Content[0].Text);
-
-                if (response!.DefaultPatternsSkipped.Length > 0)
+                var result = await client.CallToolAsync("remove_ignore_patterns", new() { ["patterns"] = patterns });
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync("Default patterns (cannot be removed):");
-                    foreach (var pattern in response.DefaultPatternsSkipped)
+                    var response = JsonSerializer.Deserialize<RemoveIgnorePatternsResponse>(jsonText);
+
+                    if (response!.DefaultPatternsSkipped.Length > 0)
+                    {
+                        await Console.Out.WriteLineAsync("Default patterns (cannot be removed):");
+                        foreach (var pattern in response.DefaultPatternsSkipped)
+                        {
+                            await Console.Out.WriteLineAsync($"  {pattern}");
+                        }
+                        await Console.Out.WriteLineAsync();
+                    }
+
+                    if (response.RemovedPatterns.Length > 0)
+                    {
+                        await Console.Out.WriteLineAsync("Successfully removed patterns:");
+                        foreach (var pattern in response.RemovedPatterns)
+                        {
+                            await Console.Out.WriteLineAsync($"  {pattern}");
+                        }
+                        await Console.Out.WriteLineAsync();
+                    }
+
+                    if (response.NotFoundPatterns.Length > 0)
+                    {
+                        await Console.Out.WriteLineAsync("Patterns not found:");
+                        foreach (var pattern in response.NotFoundPatterns)
+                        {
+                            await Console.Out.WriteLineAsync($"  {pattern}");
+                        }
+                        await Console.Out.WriteLineAsync();
+                    }
+
+                    await Console.Out.WriteLineAsync("Remaining patterns:");
+                    foreach (var pattern in response.AllPatterns)
                     {
                         await Console.Out.WriteLineAsync($"  {pattern}");
                     }
-                    await Console.Out.WriteLineAsync();
-                }
-
-                if (response.RemovedPatterns.Length > 0)
-                {
-                    await Console.Out.WriteLineAsync("Successfully removed patterns:");
-                    foreach (var pattern in response.RemovedPatterns)
-                    {
-                        await Console.Out.WriteLineAsync($"  {pattern}");
-                    }
-                    await Console.Out.WriteLineAsync();
-                }
-
-                if (response.NotFoundPatterns.Length > 0)
-                {
-                    await Console.Out.WriteLineAsync("Patterns not found:");
-                    foreach (var pattern in response.NotFoundPatterns)
-                    {
-                        await Console.Out.WriteLineAsync($"  {pattern}");
-                    }
-                    await Console.Out.WriteLineAsync();
-                }
-
-                await Console.Out.WriteLineAsync("Remaining patterns:");
-                foreach (var pattern in response.AllPatterns)
-                {
-                    await Console.Out.WriteLineAsync($"  {pattern}");
                 }
             }
             catch (Exception ex)
@@ -354,9 +415,13 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("get_state_file_location");
-                var response = JsonSerializer.Deserialize<StateFileLocationResponse>(result.Content[0].Text);
-                await Console.Out.WriteLineAsync($"State file location: {response!.StateFilePath}");
+                var result = await client.CallToolAsync("get_state_file_location", new Dictionary<string, object>());
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
+                {
+                    var response = JsonSerializer.Deserialize<StateFileLocationResponse>(jsonText);
+                    await Console.Out.WriteLineAsync($"State file location: {response!.StateFilePath}");
+                }
             }
             catch (Exception ex)
             {
@@ -371,21 +436,25 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("get_ignore_patterns");
-                var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(result.Content[0].Text);
-                
-                await Console.Out.WriteLineAsync("Default patterns:");
-                foreach (var pattern in response!.DefaultPatterns)
+                var result = await client.CallToolAsync("get_ignore_patterns", new Dictionary<string, object>());
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync($"  {pattern}");
-                }
-                
-                if (response.UserPatterns.Length != 0)
-                {
-                    await Console.Out.WriteLineAsync("\nUser-added patterns:");
-                    foreach (var pattern in response.UserPatterns)
+                    var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(jsonText);
+                    
+                    await Console.Out.WriteLineAsync("Default patterns:");
+                    foreach (var pattern in response!.DefaultPatterns)
                     {
                         await Console.Out.WriteLineAsync($"  {pattern}");
+                    }
+                    
+                    if (response.UserPatterns.Length != 0)
+                    {
+                        await Console.Out.WriteLineAsync("\nUser-added patterns:");
+                        foreach (var pattern in response.UserPatterns)
+                        {
+                            await Console.Out.WriteLineAsync($"  {pattern}");
+                        }
                     }
                 }
             }
@@ -402,31 +471,19 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("clear_ignore_patterns");
-                var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(result.Content[0].Text);
-                
-                await Console.Out.WriteLineAsync("Cleared all user-added patterns.");
-                await Console.Out.WriteLineAsync("\nRemaining default patterns:");
-                foreach (var pattern in response!.DefaultPatterns)
+                var result = await client.CallToolAsync("clear_ignore_patterns", new Dictionary<string, object>());
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync($"  {pattern}");
+                    var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(jsonText);
+                    
+                    await Console.Out.WriteLineAsync("Cleared all user-added patterns.");
+                    await Console.Out.WriteLineAsync("\nRemaining default patterns:");
+                    foreach (var pattern in response!.DefaultPatterns)
+                    {
+                        await Console.Out.WriteLineAsync($"  {pattern}");
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
-                Environment.Exit(1);
-            }
-        });
-
-        // Throw Exception command (for testing error handling)
-        var throwExceptionCommand = new Command("throw-exception", "Throw an exception (for testing)");
-        throwExceptionCommand.SetHandler(async () =>
-        {
-            try
-            {
-                var result = await client.CallToolAsync("throw_exception");
-                await Console.Out.WriteLineAsync(result.Content[0].Text);
             }
             catch (Exception ex)
             {
@@ -445,28 +502,32 @@ class Program
         {
             try
             {
-                var args = new Dictionary<string, object> { { "query", query } };
+                var args = new Dictionary<string, object> { ["query"] = query };
                 if (top.HasValue)
                 {
                     args["topK"] = top.Value;
                 }
                 
                 var result = await client.CallToolAsync("semantic_search", args);
-                var response = JsonSerializer.Deserialize<SemanticSearchResponse>(result.Content[0].Text);
-                
-                await Console.Out.WriteLineAsync($"Found {response!.Results.Length} results:\n");
-                foreach (var match in response.Results)
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
                 {
-                    await Console.Out.WriteLineAsync($"File: {match.FilePath}");
-                    if (!string.IsNullOrEmpty(match.ParentScope))
+                    var response = JsonSerializer.Deserialize<SemanticSearchResponse>(jsonText);
+                    
+                    await Console.Out.WriteLineAsync($"Found {response!.Results.Length} results:\n");
+                    foreach (var match in response.Results)
                     {
-                        await Console.Out.WriteLineAsync($"Scope: {match.ParentScope}");
+                        await Console.Out.WriteLineAsync($"File: {match.FilePath}");
+                        if (!string.IsNullOrEmpty(match.ParentScope))
+                        {
+                            await Console.Out.WriteLineAsync($"Scope: {match.ParentScope}");
+                        }
+                        await Console.Out.WriteLineAsync($"Lines {match.StartLine}-{match.EndLine} (Score: {match.Score}%)");
+                        await Console.Out.WriteLineAsync("Content:");
+                        await Console.Out.WriteLineAsync(match.Content);
+                        await Console.Out.WriteLineAsync(new string('-', 80));
+                        await Console.Out.WriteLineAsync();
                     }
-                    await Console.Out.WriteLineAsync($"Lines {match.StartLine}-{match.EndLine} (Score: {match.Score}%)");
-                    await Console.Out.WriteLineAsync("Content:");
-                    await Console.Out.WriteLineAsync(match.Content);
-                    await Console.Out.WriteLineAsync(new string('-', 80));
-                    await Console.Out.WriteLineAsync();
                 }
             }
             catch (Exception ex)
@@ -482,78 +543,81 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("analyze_packages", []);
-                var jsonResponse = result.Content[0].Text;
+                var result = await client.CallToolAsync("analyze_packages", new Dictionary<string, object>());
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
                 
                 // Try to deserialize to our expected type
                 try
                 {
-                    // Try to deserialize as JDocument first to inspect the structure
-                    var jsonObj = JsonDocument.Parse(jsonResponse);
-                    var rootElement = jsonObj.RootElement;
-                    
-                    // Check if the response is an error message
-                    if (rootElement.ValueKind == JsonValueKind.Object && 
-                        rootElement.TryGetProperty("Error", out var errorElement))
+                    if (!string.IsNullOrEmpty(jsonText))
                     {
-                        await Console.Out.WriteLineAsync($"Error from server: {errorElement}");
-                        return;
-                    }
-                    
-                    // Check if the response is a message
-                    if (rootElement.ValueKind == JsonValueKind.Object && 
-                        rootElement.TryGetProperty("Message", out var messageElement))
-                    {
-                        await Console.Out.WriteLineAsync($"Message from server: {messageElement}");
-                        return;
-                    }
-                    
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true
-                    };
-                    var projectAnalyses = JsonSerializer.Deserialize<List<ProjectPackageAnalysis>>(jsonResponse, options);
-
-                    if (projectAnalyses == null || projectAnalyses.Count == 0)
-                    {
-                        await Console.Out.WriteLineAsync("No projects or packages found in the base directory.");
-                        return;
-                    }
-
-                    await Console.Out.WriteLineAsync($"Found {projectAnalyses.Count} project(s) with packages:\n");
-
-                    foreach (var projectAnalysis in projectAnalyses)
-                    {
-                        await Console.Out.WriteLineAsync($"Project: {projectAnalysis.ProjectPath}");
+                        // Try to deserialize as JDocument first to inspect the structure
+                        var jsonObj = JsonDocument.Parse(jsonText);
+                        var rootElement = jsonObj.RootElement;
                         
-                        if (projectAnalysis.Packages.Count == 0)
+                        // Check if the response is an error message
+                        if (rootElement.ValueKind == JsonValueKind.Object && 
+                            rootElement.TryGetProperty("Error", out var errorElement))
                         {
-                            await Console.Out.WriteLineAsync("  No packages found in this project.\n");
-                            continue;
-                        }
-
-                        await Console.Out.WriteLineAsync($"  Found {projectAnalysis.Packages.Count} package(s):");
-                        
-                        foreach (var package in projectAnalysis.Packages)
-                        {
-                            var statusSymbol = package.HasSecurityIssues ? "🔴" : 
-                                              (package.HasUpdate ? "🔄" : 
-                                              (!package.IsUsed ? "⚠️" : "✅"));
-                            
-                            await Console.Out.WriteLineAsync($"  - {statusSymbol} {package.PackageId} ({package.Version}{(package.HasUpdate ? $" → {package.LatestVersion}" : "")})");
-                            
-                            if (!string.IsNullOrEmpty(package.RecommendedAction))
-                            {
-                                await Console.Out.WriteLineAsync($"    {package.RecommendedAction}");
-                            }
-                            
-                            if (package.UsageLocations.Count > 0)
-                            {
-                                await Console.Out.WriteLineAsync($"    Used in {package.UsageLocations.Count} location(s)");
-                            }
+                            await Console.Out.WriteLineAsync($"Error from server: {errorElement}");
+                            return;
                         }
                         
-                        await Console.Out.WriteLineAsync();
+                        // Check if the response is a message
+                        if (rootElement.ValueKind == JsonValueKind.Object && 
+                            rootElement.TryGetProperty("Message", out var messageElement))
+                        {
+                            await Console.Out.WriteLineAsync($"Message from server: {messageElement}");
+                            return;
+                        }
+                        
+                        var options = new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        };
+                        var projectAnalyses = JsonSerializer.Deserialize<List<ProjectPackageAnalysis>>(jsonText, options);
+
+                        if (projectAnalyses == null || projectAnalyses.Count == 0)
+                        {
+                            await Console.Out.WriteLineAsync("No projects or packages found in the base directory.");
+                            return;
+                        }
+
+                        await Console.Out.WriteLineAsync($"Found {projectAnalyses.Count} project(s) with packages:\n");
+
+                        foreach (var projectAnalysis in projectAnalyses)
+                        {
+                            await Console.Out.WriteLineAsync($"Project: {projectAnalysis.ProjectPath}");
+                            
+                            if (projectAnalysis.Packages.Count == 0)
+                            {
+                                await Console.Out.WriteLineAsync("  No packages found in this project.\n");
+                                continue;
+                            }
+
+                            await Console.Out.WriteLineAsync($"  Found {projectAnalysis.Packages.Count} package(s):");
+                            
+                            foreach (var package in projectAnalysis.Packages)
+                            {
+                                var statusSymbol = package.HasSecurityIssues ? "🔴" : 
+                                                (package.HasUpdate ? "🔄" : 
+                                                (!package.IsUsed ? "⚠️" : "✅"));
+                                
+                                await Console.Out.WriteLineAsync($"  - {statusSymbol} {package.PackageId} ({package.Version}{(package.HasUpdate ? $" → {package.LatestVersion}" : "")})");
+                                
+                                if (!string.IsNullOrEmpty(package.RecommendedAction))
+                                {
+                                    await Console.Out.WriteLineAsync($"    {package.RecommendedAction}");
+                                }
+                                
+                                if (package.UsageLocations.Count > 0)
+                                {
+                                    await Console.Out.WriteLineAsync($"    Used in {package.UsageLocations.Count} location(s)");
+                                }
+                            }
+                            
+                            await Console.Out.WriteLineAsync();
+                        }
                     }
                 }
                 catch (JsonException ex)
@@ -583,7 +647,6 @@ class Program
         rootCommand.AddCommand(clearIgnorePatternsCommand);
         rootCommand.AddCommand(removeIgnorePatternsCommand);
         rootCommand.AddCommand(getStateFileLocationCommand);
-        rootCommand.AddCommand(throwExceptionCommand);
         rootCommand.AddCommand(semanticSearchCommand);
         rootCommand.AddCommand(analyzePackagesCommand);
         
