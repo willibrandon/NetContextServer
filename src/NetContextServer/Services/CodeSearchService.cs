@@ -12,11 +12,23 @@ internal static class CodeSearchService
     {
         if (!_isIndexed)
         {
+            Console.WriteLine("Starting initial indexing...");
             _semanticSearch ??= new SemanticSearchService();
-            var files = Directory.GetFiles(FileValidationService.BaseDirectory, "*.*", SearchOption.AllDirectories)
-                .Where(f => f.EndsWith(".cs") || f.EndsWith(".fs") || f.EndsWith(".vb"));
+            
+            var baseDir = FileValidationService.BaseDirectory;
+            Console.WriteLine($"Searching for files in: {baseDir}");
+            
+            var files = Directory.GetFiles(baseDir, "*.*", SearchOption.AllDirectories)
+                .Where(f => f.EndsWith(".cs") || f.EndsWith(".fs") || f.EndsWith(".vb") || 
+                           f.EndsWith(".fsx") || f.EndsWith(".fsi") || f.EndsWith(".cshtml") || 
+                           f.EndsWith(".vbhtml") || f.EndsWith(".razor"))
+                .Where(f => !IgnorePatternService.ShouldIgnoreFile(f))
+                .ToList();
+                
+            Console.WriteLine($"Found {files.Count} files to index");
             await _semanticSearch.IndexFilesAsync(files);
             _isIndexed = true;
+            Console.WriteLine("Initial indexing completed");
         }
     }
 
@@ -51,6 +63,15 @@ internal static class CodeSearchService
 
         var results = await _semanticSearch.SearchAsync(query, topK);
         
+        if (!results.Any())
+        {
+            // Return an empty results array instead of an error
+            return JsonSerializer.Serialize(new
+            {
+                Results = Array.Empty<object>()
+            });
+        }
+
         return JsonSerializer.Serialize(new
         {
             Results = results.Select(r => new

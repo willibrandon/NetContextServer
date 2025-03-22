@@ -98,20 +98,35 @@ internal static class IgnorePatternService
         }
 
         SaveState();
-        return JsonSerializer.Serialize(GetAllPatterns().ToArray());
+        return JsonSerializer.Serialize(new
+        {
+            InvalidPatterns = invalidPatterns.ToArray(),
+            ValidPatternsAdded = validPatterns.ToArray(),
+            AllPatterns = GetAllPatterns().ToArray()
+        });
     }
 
     public static string GetIgnorePatterns()
     {
         LoadState();
-        return JsonSerializer.Serialize(GetAllPatterns().ToArray());
+        return JsonSerializer.Serialize(new
+        {
+            DefaultPatterns = DefaultIgnorePatterns.ToArray(),
+            UserPatterns = UserIgnorePatterns.ToArray(),
+            AllPatterns = GetAllPatterns().ToArray()
+        });
     }
 
     public static string ClearIgnorePatterns()
     {
         UserIgnorePatterns.Clear();
         SaveState();
-        return JsonSerializer.Serialize(UserIgnorePatterns.ToArray());
+        return JsonSerializer.Serialize(new
+        {
+            DefaultPatterns = DefaultIgnorePatterns.ToArray(),
+            UserPatterns = UserIgnorePatterns.ToArray(),
+            AllPatterns = GetAllPatterns().ToArray()
+        });
     }
 
     public static string RemoveIgnorePatterns(string[] patterns)

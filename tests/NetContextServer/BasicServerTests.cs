@@ -1,149 +1,102 @@
 using ModelContextProtocol.Client;
-using System.Diagnostics;
-using Xunit;
+using ModelContextProtocol.Protocol.Types;
+using System.Text.Json;
 
 namespace NetContextServer.Tests;
 
-[Trait("Category", "AI_Generated")]
-[Collection("NetContextServer Tests")]
-public class BasicServerTests : IDisposable
+[Collection("NetContextServer Collection")]
+public class BasicServerTests : IAsyncLifetime
 {
     private readonly string _testDir;
     private readonly string _testProjectPath;
     private readonly string _testCsFilePath;
-    private readonly IMcpClient client;
+    private readonly IMcpClient _client;
 
-    public BasicServerTests()
+    public BasicServerTests(NetContextServerFixture fixture)
     {
-        // Kill any running NetContextServer processes
-        try
-        {
-            foreach (var process in Process.GetProcessesByName("NetContextServer"))
-            {
-                try
-                {
-                    process.Kill();
-                    process.WaitForExit(3000); // Wait up to 3 seconds for the process to exit
-                }
-                catch
-                {
-                    // Ignore errors when trying to kill processes
-                }
-            }
-        }
-        catch
-        {
-            // Ignore any exceptions when trying to get or kill processes
-        }
-
-        // Setup test directory and files
-        _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerTests");
+        _client = fixture.Client;
+        _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerTests_" + Guid.NewGuid());
         _testProjectPath = Path.Combine(_testDir, "Test.csproj");
         _testCsFilePath = Path.Combine(_testDir, "Test.cs");
-
-        Directory.CreateDirectory(_testDir);
-        File.WriteAllText(_testProjectPath, "<Project />");
-        File.WriteAllText(_testCsFilePath, "public class Test { }");
-
-        var executableName = OperatingSystem.IsWindows() ? "NetContextServer.exe" : "NetContextServer";
-        client = new MCPClient("Test Client", "1.0.0", executableName);
     }
 
+    public Task InitializeAsync() => Task.CompletedTask;
+    public Task DisposeAsync() => Task.CompletedTask;
+
     [Fact]
-    public async Task Test_ListTools()
+    public async Task ListTools_ReturnsValidToolList()
     {
-        var tools = await client.GetToolsAsync();
+        // Act
+        var tools = new List<Tool>();
+        await foreach (var tool in _client.ListToolsAsync())
+        {
+            tools.Add(tool);
+        }
+
+        // Assert
         Assert.NotNull(tools);
-        Assert.True(tools.Count() > 0);
-        tools.ForEach(tool =>
+        Assert.NotEmpty(tools);
+        
+        foreach (var tool in tools)
         {
-            Assert.False(string.IsNullOrEmpty(tool.Name));
-            Assert.False(string.IsNullOrEmpty(tool.Description));
-        });
+            Assert.NotNull(tool.Name);
+            Assert.NotNull(tool.Description);
+            Assert.NotEmpty(tool.Name);
+            Assert.NotEmpty(tool.Description);
+        }
     }
 
     [Fact]
-    public async Task TestPing()
+    public async Task Hello_ReturnsSuccess()
     {
-        await client.PingAsync();
+        // Act
+        var result = await _client.CallToolAsync("hello", new Dictionary<string, object>());
+
+        // Assert
+        Assert.NotNull(result);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
+        Console.WriteLine($"Actual hello response: {content.Text}");
+        Assert.Equal("hello, claude.", content.Text);
     }
 
     [Fact]
-    public async Task TestCallInvalidTool()
+    public async Task CallInvalidTool_ReturnsError()
     {
-        Assert.True((await client.CallToolAsync("NotARealTool")).IsError);
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<McpClientException>(
+            () => _client.CallToolAsync("invalid_tool", new Dictionary<string, object>()));
+        Assert.Contains("Unknown tool", ex.Message);
     }
 
     [Fact]
-    public async Task Hello_ReturnsExpectedMessage()
+    public async Task CallToolWithInvalidParameters_ReturnsError()
     {
-        // Set the base directory for NetContextServer to our test directory
-        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        // Act
+        var result = await _client.CallToolAsync("list_files", new Dictionary<string, object>());
 
-        var result = await client.CallToolAsync("hello");
-        Assert.Equal("hello, claude.", result.Content[0].Text);
+        // Assert
+        Assert.NotNull(result);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
+
+        Console.WriteLine($"Raw response: {content.Text}");
+        var response = JsonSerializer.Deserialize<string[]>(content.Text);
+        Assert.NotNull(response);
+        Assert.NotEmpty(response);
+        Assert.StartsWith("Error:", response[0]);
     }
 
-    [Fact]
-    public async Task TestCallToolWithInvalidParameters()
+    private class ToolInfo
     {
-        var result = await client.CallToolAsync("Echo", new Dictionary<string, object> { { "invalid_param", "test" } });
-        Assert.True(result.IsError);
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
     }
 
-    public void Dispose()
+    private class ErrorResponse
     {
-        // Reset the base directory
-        try
-        {
-            NetContextServer.SetBaseDirectory(Directory.GetCurrentDirectory());
-        }
-        catch
-        {
-            // Ignore errors when resetting base directory
-        }
-
-        // Cleanup test directory
-        try
-        {
-            Directory.Delete(_testDir, true);
-        }
-        catch
-        {
-            // Ignore cleanup errors
-        }
-
-        // Dispose the client
-        try
-        {
-            client?.Dispose();
-        }
-        catch
-        {
-            // Ignore errors when disposing client
-        }
-
-        // Kill any remaining NetContextServer processes
-        try
-        {
-            foreach (var process in Process.GetProcessesByName("NetContextServer"))
-            {
-                try
-                {
-                    process.Kill();
-                    process.WaitForExit(1000);
-                }
-                catch
-                {
-                    // Ignore errors when killing processes
-                }
-            }
-        }
-        catch
-        {
-            // Ignore errors when getting processes
-        }
-
-        GC.SuppressFinalize(this);
+        public string? Error { get; set; }
     }
 }

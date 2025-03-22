@@ -1,45 +1,50 @@
 using ModelContextProtocol.Client;
-using System.Diagnostics;
 using System.Text.Json;
+using Xunit;
 
 namespace NetContextServer.Tests;
 
-[Trait("Category", "AI_Generated")]
-[Collection("NetContextServer Tests")]
-public class BaseDirectoryTests : IDisposable
+[Collection("NetContextServer Collection")]
+public class BaseDirectoryTests : IAsyncLifetime
 {
     private readonly string _testDir;
-    private readonly IMcpClient client;
+    private readonly IMcpClient _client;
 
-    public BaseDirectoryTests()
+    public BaseDirectoryTests(NetContextServerFixture fixture)
     {
-        // Kill any running NetContextServer processes
+        _client = fixture.Client;
+        _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerBaseDirectoryTests_" + Guid.NewGuid());
+    }
+
+    public async Task InitializeAsync()
+    {
+        await Task.Run(() => Directory.CreateDirectory(_testDir));
+    }
+
+    public async Task DisposeAsync()
+    {
         try
         {
-            foreach (var process in Process.GetProcessesByName("NetContextServer"))
+            // Reset the base directory
+            await _client.CallToolAsync("set_base_directory", 
+                new Dictionary<string, object> { ["directory"] = Directory.GetCurrentDirectory() });
+        }
+        catch
+        {
+            // Ignore errors when resetting base directory
+        }
+
+        try
+        {
+            if (Directory.Exists(_testDir))
             {
-                try
-                {
-                    process.Kill();
-                    process.WaitForExit(3000); // Wait up to 3 seconds for the process to exit
-                }
-                catch
-                {
-                    // Ignore errors when trying to kill processes
-                }
+                Directory.Delete(_testDir, true);
             }
         }
         catch
         {
-            // Ignore any exceptions when trying to get or kill processes
+            // Ignore cleanup errors
         }
-
-        // Setup test directory
-        _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerBaseDirectoryTests");
-        Directory.CreateDirectory(_testDir);
-
-        var executableName = OperatingSystem.IsWindows() ? "NetContextServer.exe" : "NetContextServer";
-        client = new MCPClient("Test Client", "1.0.0", executableName);
     }
 
     [Fact]
@@ -50,20 +55,19 @@ public class BaseDirectoryTests : IDisposable
         Directory.CreateDirectory(tempDir);
 
         // Act
-        var result = await client.CallToolAsync("set_base_directory", new Dictionary<string, object>
-        {
-            { "directory", tempDir }
-        });
+        var result = await _client.CallToolAsync("set_base_directory", 
+            new Dictionary<string, object> { ["directory"] = tempDir });
 
         // Assert
         Assert.NotNull(result);
-        Assert.Single(result.Content);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
 
-        var responseJson = JsonDocument.Parse(result.Content[0].Text);
-        var responseArray = responseJson.RootElement.EnumerateArray().ToArray();
-
+        var responseArray = JsonSerializer.Deserialize<string[]>(content.Text);
+        Assert.NotNull(responseArray);
         Assert.Single(responseArray);
-        Assert.Contains("Base directory set to:", responseArray[0].GetString());
+        Assert.Contains("Base directory set to:", responseArray[0]);
     }
 
     [Fact]
@@ -73,20 +77,19 @@ public class BaseDirectoryTests : IDisposable
         var invalidPath = Path.Combine(_testDir, "NonExistentDir");
 
         // Act
-        var result = await client.CallToolAsync("set_base_directory", new Dictionary<string, object>
-        {
-            { "directory", invalidPath }
-        });
+        var result = await _client.CallToolAsync("set_base_directory", 
+            new Dictionary<string, object> { ["directory"] = invalidPath });
 
         // Assert
         Assert.NotNull(result);
-        Assert.Single(result.Content);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
 
-        var responseJson = JsonDocument.Parse(result.Content[0].Text);
-        var responseArray = responseJson.RootElement.EnumerateArray().ToArray();
-
+        var responseArray = JsonSerializer.Deserialize<string[]>(content.Text);
+        Assert.NotNull(responseArray);
         Assert.Single(responseArray);
-        Assert.Equal("Error: Directory not found", responseArray[0].GetString());
+        Assert.Equal("Error: Directory not found", responseArray[0]);
     }
 
     [Fact]
@@ -97,20 +100,21 @@ public class BaseDirectoryTests : IDisposable
         Directory.CreateDirectory(tempDir);
 
         // Set the base directory first
-        await client.CallToolAsync("set_base_directory", new Dictionary<string, object>
-        {
-            { "directory", tempDir }
-        });
+        await _client.CallToolAsync("set_base_directory", 
+            new Dictionary<string, object> { ["directory"] = tempDir });
 
         // Act
-        var result = await client.CallToolAsync("get_base_directory", new Dictionary<string, object>());
+        var result = await _client.CallToolAsync("get_base_directory", 
+            new Dictionary<string, object>());
 
         // Assert
         Assert.NotNull(result);
-        Assert.Single(result.Content);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
 
         var response = JsonSerializer.Deserialize<BaseDirectoryResponse>(
-            result.Content[0].Text,
+            content.Text,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         Assert.NotNull(response);
@@ -126,84 +130,29 @@ public class BaseDirectoryTests : IDisposable
         Directory.CreateDirectory(tempDir);
 
         // Set the base directory
-        await client.CallToolAsync("set_base_directory", new Dictionary<string, object>
-        {
-            { "directory", tempDir }
-        });
+        await _client.CallToolAsync("set_base_directory", 
+            new Dictionary<string, object> { ["directory"] = tempDir });
 
         // Delete the directory
         Directory.Delete(tempDir);
 
         // Act
-        var result = await client.CallToolAsync("get_base_directory", new Dictionary<string, object>());
+        var result = await _client.CallToolAsync("get_base_directory", 
+            new Dictionary<string, object>());
 
         // Assert
         Assert.NotNull(result);
-        Assert.Single(result.Content);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
 
         var response = JsonSerializer.Deserialize<BaseDirectoryResponse>(
-            result.Content[0].Text,
+            content.Text,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         Assert.NotNull(response);
         Assert.Equal(tempDir, response.BaseDirectory);
         Assert.False(response.Exists);
-    }
-
-    public void Dispose()
-    {
-        // Reset the base directory
-        try
-        {
-            NetContextServer.SetBaseDirectory(Directory.GetCurrentDirectory());
-        }
-        catch
-        {
-            // Ignore errors when resetting base directory
-        }
-
-        // Cleanup test directory
-        try
-        {
-            Directory.Delete(_testDir, true);
-        }
-        catch
-        {
-            // Ignore cleanup errors
-        }
-
-        // Dispose the client
-        try
-        {
-            client?.Dispose();
-        }
-        catch
-        {
-            // Ignore errors when disposing client
-        }
-
-        // Kill any remaining NetContextServer processes
-        try
-        {
-            foreach (var process in Process.GetProcessesByName("NetContextServer"))
-            {
-                try
-                {
-                    process.Kill();
-                    process.WaitForExit(1000);
-                }
-                catch
-                {
-                    // Ignore errors when killing processes
-                }
-            }
-        }
-        catch
-        {
-            // Ignore errors when getting processes
-        }
-
-        GC.SuppressFinalize(this);
     }
 
     private class BaseDirectoryResponse

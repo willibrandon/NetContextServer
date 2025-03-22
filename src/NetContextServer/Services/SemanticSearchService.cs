@@ -1,6 +1,8 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Embeddings;
 using NetContextServer.Models;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace NetContextServer.Services
 {
@@ -63,14 +65,22 @@ namespace NetContextServer.Services
                 return;
             }
 
+
 #pragma warning disable SKEXP0001
             var service = _kernel!.GetRequiredService<ITextEmbeddingGenerationService>();
 #pragma warning restore SKEXP0001
 
             foreach (var filePath in filePaths)
             {
-                if (_indexedFiles.Contains(filePath) || ShouldIgnoreFile(filePath))
+                if (_indexedFiles.Contains(filePath))
+                {
                     continue;
+                }
+                
+                if (ShouldIgnoreFile(filePath))
+                {
+                    continue;
+                }
 
                 try
                 {
@@ -78,12 +88,17 @@ namespace NetContextServer.Services
                     var chunks = ChunkCode(content);
                     var lineNumbers = GetLineNumbers(content);
 
+                    int meaningfulChunks = 0;
+
                     for (int i = 0; i < chunks.Count; i++)
                     {
                         var chunk = chunks[i];
                         if (!IsMeaningfulCode(chunk))
+                        {
                             continue;
+                        }
 
+                        meaningfulChunks++;
                         var startLine = lineNumbers[i * CHUNK_SIZE];
                         var endLine = lineNumbers[Math.Min((i + 1) * CHUNK_SIZE - 1, lineNumbers.Length - 1)];
                         
@@ -99,6 +114,7 @@ namespace NetContextServer.Services
                             Embedding = embedding
                         };
                     }
+
                     _indexedFiles.Add(filePath);
                 }
                 catch (Exception ex)
@@ -118,7 +134,8 @@ namespace NetContextServer.Services
 
             if (_cache.Count == 0)
             {
-                return Enumerable.Empty<(CodeSnippet, double)>();
+                Console.WriteLine("Warning: Cannot search because no files have been indexed");
+                return [];
             }
 
 #pragma warning disable SKEXP0001
@@ -126,30 +143,57 @@ namespace NetContextServer.Services
 #pragma warning restore SKEXP0001
 
             var queryEmbedding = await service.GenerateEmbeddingAsync(query);
-
-            return _cache.Values
+            var results = _cache.Values
                 .Select(snippet => (
                     Snippet: snippet,
                     Score: CosineSimilarity(queryEmbedding, snippet.Embedding)
                 ))
                 .OrderByDescending(x => x.Score)
-                .Take(topK);
+                .Take(topK)
+                .ToList();
+
+            return results;
         }
 
         private static bool ShouldIgnoreFile(string filePath)
         {
-            // Get user patterns from Program.cs
+            // Get user patterns from IgnorePatternService
             var userPatternsJson = IgnorePatternService.GetIgnorePatterns();
-            var userPatterns = System.Text.Json.JsonSerializer.Deserialize<string[]>(userPatternsJson) ?? [];
-            var allPatterns = _defaultIgnorePatterns.Concat(userPatterns);
-
-            foreach (var pattern in allPatterns)
+            var options = new JsonSerializerOptions
             {
-                var regex = WildcardToRegex(pattern);
-                if (System.Text.RegularExpressions.Regex.IsMatch(filePath, regex, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-                    return true;
+                PropertyNameCaseInsensitive = true
+            };
+            
+            try
+            {
+                var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(userPatternsJson, options);
+                var allPatterns = _defaultIgnorePatterns.Concat(response?.UserPatterns ?? []);
+
+                foreach (var pattern in allPatterns)
+                {
+                    var regex = WildcardToRegex(pattern);
+                    if (Regex.IsMatch(filePath, regex, RegexOptions.IgnoreCase))
+                        return true;
+                }
+            }
+            catch (Exception)
+            {
+                // If we can't parse the patterns, just use the defaults
+                foreach (var pattern in _defaultIgnorePatterns)
+                {
+                    var regex = WildcardToRegex(pattern);
+                    if (Regex.IsMatch(filePath, regex, RegexOptions.IgnoreCase))
+                        return true;
+                }
             }
             return false;
+        }
+
+        private class IgnorePatternsResponse
+        {
+            public string[] DefaultPatterns { get; set; } = [];
+            public string[] UserPatterns { get; set; } = [];
+            public string[] AllPatterns { get; set; } = [];
         }
 
         private static string WildcardToRegex(string pattern)

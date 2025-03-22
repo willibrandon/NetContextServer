@@ -1,156 +1,177 @@
 using ModelContextProtocol.Client;
-using System.Diagnostics;
 using System.Text.Json;
 using Xunit;
 
 namespace NetContextServer.Tests;
 
-[Trait("Category", "AI_Generated")]
-[Collection("NetContextServer Tests")]
-public class ProjectOperationTests : IDisposable
+[Collection("NetContextServer Collection")]
+public class ProjectOperationTests : IAsyncLifetime
 {
     private readonly string _testDir;
     private readonly string _testProjectPath;
     private readonly string _testCsFilePath;
-    private readonly IMcpClient client;
+    private readonly IMcpClient _client;
 
-    public ProjectOperationTests()
+    private class ErrorResponse
     {
-        // Kill any running NetContextServer processes
-        try
-        {
-            foreach (var process in Process.GetProcessesByName("NetContextServer"))
-            {
-                try
-                {
-                    process.Kill();
-                    process.WaitForExit(3000); // Wait up to 3 seconds for the process to exit
-                }
-                catch
-                {
-                    // Ignore errors when trying to kill processes
-                }
-            }
-        }
-        catch
-        {
-            // Ignore any exceptions when trying to get or kill processes
-        }
+        public string Error { get; set; } = string.Empty;
+    }
 
-        // Setup test directory and files
-        _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerTests");
+    public ProjectOperationTests(NetContextServerFixture fixture)
+    {
+        _client = fixture.Client;
+        _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerTests_" + Guid.NewGuid());
         _testProjectPath = Path.Combine(_testDir, "Test.csproj");
         _testCsFilePath = Path.Combine(_testDir, "Test.cs");
-
-        Directory.CreateDirectory(_testDir);
-        File.WriteAllText(_testProjectPath, "<Project />");
-        File.WriteAllText(_testCsFilePath, "public class Test { }");
-
-        var executableName = OperatingSystem.IsWindows() ? "NetContextServer.exe" : "NetContextServer";
-        client = new MCPClient("Test Client", "1.0.0", executableName);
     }
 
-    [Fact]
-    public async Task ListProjects_ReturnsJsonArray()
+    public async Task InitializeAsync()
     {
-        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
-        var result = await client.CallToolAsync("list_projects");
-        var projects = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-
-        Assert.NotNull(projects);
-        Assert.Contains(projects, p => p.EndsWith(".csproj"));
+        await Task.Run(() =>
+        {
+            Directory.CreateDirectory(_testDir);
+            File.WriteAllText(_testProjectPath, "<Project />");
+            File.WriteAllText(_testCsFilePath, "public class Test { }");
+        });
     }
 
-    [Fact]
-    public async Task ListSolutions_ReturnsSolutionFiles()
+    public async Task DisposeAsync()
     {
-        // Create a test solution file
-        var solutionPath = Path.Combine(_testDir, "Test.sln");
-        File.WriteAllText(solutionPath, "");
-
-        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
-        var result = await client.CallToolAsync("list_solutions");
-        var solutions = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-
-        Assert.NotNull(solutions);
-        Assert.Contains(solutions, s => s.EndsWith(".sln"));
-    }
-
-    [Fact]
-    public async Task ListProjectsInDirectory_WithValidPath_ReturnsProjects()
-    {
-        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
-        var result = await client.CallToolAsync("list_projects_in_dir", new Dictionary<string, object> { { "directory", _testDir } });
-        var projects = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-
-        Assert.NotNull(projects);
-        Assert.Contains(projects, p => p.EndsWith(".csproj"));
-    }
-
-    [Fact]
-    public async Task ListProjectsInDirectory_WithInvalidPath_ReturnsError()
-    {
-        var invalidPath = Path.Combine(_testDir, "NonExistent");
-        var result = await client.CallToolAsync("list_projects_in_dir", new Dictionary<string, object> { { "directory", invalidPath } });
-        var error = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
-
-        Assert.NotNull(error);
-        Assert.Contains(error, e => e.StartsWith("Error:"));
-    }
-
-    public void Dispose()
-    {
-        // Reset the base directory
         try
         {
-            NetContextServer.SetBaseDirectory(Directory.GetCurrentDirectory());
+            // Reset the base directory
+            await _client.CallToolAsync("set_base_directory", 
+                new Dictionary<string, object> { ["directory"] = Directory.GetCurrentDirectory() });
         }
         catch
         {
             // Ignore errors when resetting base directory
         }
 
-        // Cleanup test directory
         try
         {
-            Directory.Delete(_testDir, true);
+            if (Directory.Exists(_testDir))
+            {
+                Directory.Delete(_testDir, true);
+            }
         }
         catch
         {
             // Ignore cleanup errors
         }
+    }
 
-        // Dispose the client
-        try
-        {
-            client?.Dispose();
-        }
-        catch
-        {
-            // Ignore errors when disposing client
-        }
+    [Fact]
+    public async Task ListProjects_ReturnsJsonArray()
+    {
+        // Arrange
+        await _client.CallToolAsync("set_base_directory", 
+            new Dictionary<string, object> { ["directory"] = _testDir });
 
-        // Kill any remaining NetContextServer processes
-        try
-        {
-            foreach (var process in Process.GetProcessesByName("NetContextServer"))
-            {
-                try
-                {
-                    process.Kill();
-                    process.WaitForExit(1000);
-                }
-                catch
-                {
-                    // Ignore errors when killing processes
-                }
-            }
-        }
-        catch
-        {
-            // Ignore errors when getting processes
-        }
+        // Act
+        var result = await _client.CallToolAsync("list_projects", 
+            new Dictionary<string, object>());
 
-        GC.SuppressFinalize(this);
+        // Assert
+        Assert.NotNull(result);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
+
+        var options = new JsonSerializerOptions 
+        { 
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var projects = JsonSerializer.Deserialize<string[]>(content.Text, options);
+        Assert.NotNull(projects);
+        Assert.Contains(projects, p => p.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ListSolutions_ReturnsSolutionFiles()
+    {
+        // Arrange: Create a test solution file
+        var solutionPath = Path.Combine(_testDir, "Test.sln");
+        await File.WriteAllTextAsync(solutionPath, "");
+        await _client.CallToolAsync("set_base_directory", 
+            new Dictionary<string, object> { ["directory"] = _testDir });
+
+        // Act
+        var result = await _client.CallToolAsync("list_solutions", 
+            new Dictionary<string, object>());
+
+        // Assert
+        Assert.NotNull(result);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
+
+        var options = new JsonSerializerOptions 
+        { 
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var solutions = JsonSerializer.Deserialize<string[]>(content.Text, options);
+        Assert.NotNull(solutions);
+        Assert.Contains(solutions, s => s.EndsWith(".sln", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ListProjectsInDirectory_WithValidPath_ReturnsProjects()
+    {
+        // Arrange
+        await _client.CallToolAsync("set_base_directory", 
+            new Dictionary<string, object> { ["directory"] = _testDir });
+
+        // Act
+        var result = await _client.CallToolAsync("list_projects_in_dir", 
+            new Dictionary<string, object> { ["directory"] = _testDir });
+
+        // Assert
+        Assert.NotNull(result);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
+
+        var options = new JsonSerializerOptions 
+        { 
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var projects = JsonSerializer.Deserialize<string[]>(content.Text, options);
+        Assert.NotNull(projects);
+        Assert.Contains(projects, p => p.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ListProjectsInDirectory_WithInvalidPath_ReturnsError()
+    {
+        // Arrange
+        var invalidPath = Path.Combine(_testDir, "NonExistent");
+
+        // Act
+        var result = await _client.CallToolAsync("list_projects_in_dir", 
+            new Dictionary<string, object> { ["directory"] = invalidPath });
+
+        // Assert
+        Assert.NotNull(result);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
+
+        var options = new JsonSerializerOptions 
+        { 
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        var response = JsonSerializer.Deserialize<string[]>(content.Text, options);
+        Assert.NotNull(response);
+        Assert.NotEmpty(response);
+        Assert.StartsWith("Error:", response[0]);
     }
 }
