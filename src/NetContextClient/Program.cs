@@ -1,15 +1,51 @@
-﻿using ModelContextProtocol;
-using ModelContextProtocol.Client;
-using ModelContextProtocol.Protocol;
-using ModelContextProtocol.Protocol.Types;
-using ModelContextProtocol.Protocol.Transport;
+﻿using ModelContextProtocol.Client;
 using ModelContextProtocol.Configuration;
+using ModelContextProtocol.Protocol.Transport;
 using NetContextClient.Models;
 using System.CommandLine;
 using System.Text.Json;
 
+/// <summary>
+/// Command-line interface for the .NET Context Client, which interacts with the MCP server
+/// to provide codebase analysis and management capabilities.
+/// 
+/// Built using the official C# SDK for MCP (https://github.com/modelcontextprotocol/csharp-sdk),
+/// this client provides commands for:
+/// - File system operations and project discovery
+/// - Code search (both text-based and semantic)
+/// - Package analysis
+/// - Ignore pattern management
+/// </summary>
 class Program
 {
+    /// <summary>
+    /// Entry point for the command-line interface. Sets up the MCP client and defines
+    /// the command structure using System.CommandLine.
+    /// </summary>
+    /// <param name="args">Command-line arguments passed to the program.</param>
+    /// <returns>
+    /// 0 for successful execution, non-zero for errors:
+    /// - 1: General execution error
+    /// - Other codes as defined by System.CommandLine
+    /// </returns>
+    /// <remarks>
+    /// Available commands:
+    /// - hello: Basic connectivity test
+    /// - set-base-dir: Set working directory
+    /// - get-base-dir: Show current working directory
+    /// - list-projects: Show all .NET projects
+    /// - list-files: List files in a project
+    /// - open-file: View file contents
+    /// - search-code: Text-based code search
+    /// - semantic-search: AI-powered code search
+    /// - analyze-packages: Analyze NuGet packages
+    /// - Ignore pattern management commands:
+    ///   * add-ignore-patterns
+    ///   * remove-ignore-patterns
+    ///   * get-ignore-patterns
+    ///   * clear-ignore-patterns
+    ///   * get-state-file-location
+    /// </remarks>
     static async Task<int> Main(string[] args)
     {
         // Define client and server configuration
