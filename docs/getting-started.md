@@ -127,7 +127,7 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- get-ignore-
 
 ## Next Steps
 
-- Explore the [full command reference](./command-reference.md)
+- Explore the [full tool reference](./tool-reference.md)
 - Learn about [advanced configuration options](./configuration.md)
 - See [integration examples](./integrations.md) with other AI tools
 - Check out our [contribution guidelines](../CONTRIBUTING.md) if you want to help improve NetContextServer

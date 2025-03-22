@@ -7,6 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Built with .NET](https://img.shields.io/badge/Built%20with-.NET-512BD4)](https://dotnet.microsoft.com/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-brightgreen)](https://modelcontextprotocol.io/)
+[![.NET Build and Test](https://github.com/willibrandon/NetContextServer/actions/workflows/ci.yaml/badge.svg)](https://github.com/willibrandon/NetContextServer/actions/workflows/ci.yaml)
 
 </div>
 
