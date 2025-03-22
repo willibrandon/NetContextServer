@@ -83,7 +83,7 @@ public class PackageAnalyzerService(string? baseDirectory = null)
                     try
                     {
                         var content = await File.ReadAllTextAsync(file);
-                        var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                        var lines = content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
                         
                         // Enhanced usage detection with proper line splitting
                         foreach (var line in lines)

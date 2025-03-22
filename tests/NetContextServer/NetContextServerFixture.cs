@@ -118,7 +118,7 @@ public class NetContextServerFixture : IAsyncLifetime, IDisposable
                 // Verify connection with a hello request
                 using var helloCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 var helloResult = await Client.CallToolAsync("hello", 
-                    new Dictionary<string, object>(), helloCts.Token);
+                    [], helloCts.Token);
                 
                 if (helloResult.IsError)
                 {

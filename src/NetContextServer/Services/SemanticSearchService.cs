@@ -23,7 +23,12 @@ namespace NetContextServer.Services
             "**/*.g.cs",
             "**/*.AssemblyInfo.cs"
         ];
-        private bool _credentialsAvailable = false;
+        private readonly bool _credentialsAvailable = false;
+
+        private static readonly JsonSerializerOptions DefaultJsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         public SemanticSearchService()
         {
@@ -159,14 +164,10 @@ namespace NetContextServer.Services
         {
             // Get user patterns from IgnorePatternService
             var userPatternsJson = IgnorePatternService.GetIgnorePatterns();
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
             
             try
             {
-                var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(userPatternsJson, options);
+                var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(userPatternsJson, DefaultJsonOptions);
                 var allPatterns = _defaultIgnorePatterns.Concat(response?.UserPatterns ?? []);
 
                 foreach (var pattern in allPatterns)

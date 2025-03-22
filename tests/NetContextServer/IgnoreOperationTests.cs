@@ -1,37 +1,36 @@
 ﻿using ModelContextProtocol.Client;
 using System.Text.Json;
-using Xunit;
 
 namespace NetContextServer.Tests;
 
 [Collection("NetContextServer Collection")]
-public class IgnoreOperationTests : IAsyncLifetime
+public class IgnoreOperationTests(NetContextServerFixture fixture) : IAsyncLifetime
 {
-    private readonly IMcpClient _client;
-    private readonly string _testDir;
+    private readonly IMcpClient _client = fixture.Client;
+    private readonly string _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerTests_" + Guid.NewGuid());
+
+    private static readonly JsonSerializerOptions DefaultJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
     private class AddIgnorePatternsResponse
     {
-        public string[] InvalidPatterns { get; set; } = Array.Empty<string>();
-        public string[] ValidPatternsAdded { get; set; } = Array.Empty<string>();
-        public string[] AllPatterns { get; set; } = Array.Empty<string>();
+        public string[] InvalidPatterns { get; set; } = [];
+        public string[] ValidPatternsAdded { get; set; } = [];
+        public string[] AllPatterns { get; set; } = [];
     }
 
     private class IgnorePatternsResponse
     {
-        public string[] DefaultPatterns { get; set; } = Array.Empty<string>();
-        public string[] UserPatterns { get; set; } = Array.Empty<string>();
+        public string[] DefaultPatterns { get; set; } = [];
+        public string[] UserPatterns { get; set; } = [];
     }
 
     private class ErrorResponse
     {
         public string Error { get; set; } = string.Empty;
-    }
-
-    public IgnoreOperationTests(NetContextServerFixture fixture)
-    {
-        _client = fixture.Client;
-        _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerTests_" + Guid.NewGuid());
     }
 
     public async Task InitializeAsync()
@@ -85,14 +84,8 @@ public class IgnoreOperationTests : IAsyncLifetime
 
         // Debug output
         Console.WriteLine($"Actual JSON response: {content.Text}");
-
-        var options = new JsonSerializerOptions 
-        { 
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
         
-        var response = JsonSerializer.Deserialize<AddIgnorePatternsResponse>(content.Text, options);
+        var response = JsonSerializer.Deserialize<AddIgnorePatternsResponse>(content.Text, DefaultJsonOptions);
         Assert.NotNull(response);
         Assert.Empty(response.InvalidPatterns);
         Assert.Equal(patterns.Length, response.ValidPatternsAdded.Length);
@@ -110,21 +103,15 @@ public class IgnoreOperationTests : IAsyncLifetime
 
         // Act
         var result = await _client.CallToolAsync("clear_ignore_patterns", 
-            new Dictionary<string, object>());
+            []);
 
         // Assert
         Assert.NotNull(result);
         var content = result.Content.FirstOrDefault(c => c.Type == "text");
         Assert.NotNull(content);
         Assert.NotNull(content.Text);
-
-        var options = new JsonSerializerOptions 
-        { 
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
         
-        var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(content.Text, options);
+        var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(content.Text, DefaultJsonOptions);
         Assert.NotNull(response);
         Assert.NotEmpty(response.DefaultPatterns);
         Assert.Empty(response.UserPatterns);
@@ -140,21 +127,15 @@ public class IgnoreOperationTests : IAsyncLifetime
 
         // Act
         var result = await _client.CallToolAsync("get_ignore_patterns", 
-            new Dictionary<string, object>());
+            []);
 
         // Assert
         Assert.NotNull(result);
         var content = result.Content.FirstOrDefault(c => c.Type == "text");
         Assert.NotNull(content);
         Assert.NotNull(content.Text);
-
-        var options = new JsonSerializerOptions 
-        { 
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
         
-        var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(content.Text, options);
+        var response = JsonSerializer.Deserialize<IgnorePatternsResponse>(content.Text, DefaultJsonOptions);
         Assert.NotNull(response);
         Assert.NotEmpty(response.DefaultPatterns);
         Assert.Equal(2, response.UserPatterns.Length);
@@ -191,9 +172,9 @@ public class IgnoreOperationTests : IAsyncLifetime
 
     private class RemoveIgnorePatternsResponse
     {
-        public string[] RemovedPatterns { get; set; } = Array.Empty<string>();
-        public string[] NotFoundPatterns { get; set; } = Array.Empty<string>();
-        public string[] DefaultPatternsSkipped { get; set; } = Array.Empty<string>();
-        public string[] AllPatterns { get; set; } = Array.Empty<string>();
+        public string[] RemovedPatterns { get; set; } = [];
+        public string[] NotFoundPatterns { get; set; } = [];
+        public string[] DefaultPatternsSkipped { get; set; } = [];
+        public string[] AllPatterns { get; set; } = [];
     }
 }

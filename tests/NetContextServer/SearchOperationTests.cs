@@ -176,7 +176,7 @@ public class SearchOperationTests : IAsyncLifetime
         Skip.If(string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(key),
             "Skipping test because Azure OpenAI credentials are not available");
 
-        Console.WriteLine($"Azure OpenAI Endpoint: {endpoint?.Substring(0, Math.Min(10, endpoint.Length))}...");
+        Console.WriteLine($"Azure OpenAI Endpoint: {endpoint?[..Math.Min(10, endpoint.Length)]}...");
         Console.WriteLine($"Azure OpenAI Key: {(string.IsNullOrEmpty(key) ? "Not Set" : "Set")}");
 
         // Create test files with various code structures
@@ -287,7 +287,7 @@ namespace TestProject
 
     private class SemanticSearchResponse
     {
-        public SemanticSearchResult[] Results { get; set; } = Array.Empty<SemanticSearchResult>();
+        public SemanticSearchResult[] Results { get; set; } = [];
     }
 
     private class SemanticSearchResult

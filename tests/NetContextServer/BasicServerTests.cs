@@ -50,7 +50,7 @@ public class BasicServerTests : IAsyncLifetime
     public async Task Hello_ReturnsSuccess()
     {
         // Act
-        var result = await _client.CallToolAsync("hello", new Dictionary<string, object>());
+        var result = await _client.CallToolAsync("hello", []);
 
         // Assert
         Assert.NotNull(result);
@@ -66,7 +66,7 @@ public class BasicServerTests : IAsyncLifetime
     {
         // Act & Assert
         var ex = await Assert.ThrowsAsync<McpClientException>(
-            () => _client.CallToolAsync("invalid_tool", new Dictionary<string, object>()));
+            () => _client.CallToolAsync("invalid_tool", []));
         Assert.Contains("Unknown tool", ex.Message);
     }
 
@@ -74,7 +74,7 @@ public class BasicServerTests : IAsyncLifetime
     public async Task CallToolWithInvalidParameters_ReturnsError()
     {
         // Act
-        var result = await _client.CallToolAsync("list_files", new Dictionary<string, object>());
+        var result = await _client.CallToolAsync("list_files", []);
 
         // Assert
         Assert.NotNull(result);

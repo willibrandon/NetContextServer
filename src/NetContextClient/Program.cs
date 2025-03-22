@@ -41,7 +41,7 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("hello", new Dictionary<string, object>());
+                var result = await client.CallToolAsync("hello", []);
                 var content = result.Content.First(c => c.Type == "text");
                 await Console.Out.WriteLineAsync(content.Text);
             }
@@ -82,7 +82,7 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("get_base_directory", new Dictionary<string, object>());
+                var result = await client.CallToolAsync("get_base_directory", []);
                 var jsonResponse = result.Content.First(c => c.Type == "text").Text;
                 
                 try
@@ -140,7 +140,7 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("list_projects", new Dictionary<string, object>());
+                var result = await client.CallToolAsync("list_projects", []);
                 var jsonText = result.Content.First(c => c.Type == "text").Text;
                 if (jsonText != null)
                 {
@@ -234,7 +234,7 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("list_solutions", new Dictionary<string, object>());
+                var result = await client.CallToolAsync("list_solutions", []);
                 var jsonText = result.Content.First(c => c.Type == "text").Text;
                 if (jsonText != null)
                 {
@@ -416,7 +416,7 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("get_state_file_location", new Dictionary<string, object>());
+                var result = await client.CallToolAsync("get_state_file_location", []);
                 var jsonText = result.Content.First(c => c.Type == "text").Text;
                 if (jsonText != null)
                 {
@@ -437,7 +437,7 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("get_ignore_patterns", new Dictionary<string, object>());
+                var result = await client.CallToolAsync("get_ignore_patterns", []);
                 var jsonText = result.Content.First(c => c.Type == "text").Text;
                 if (jsonText != null)
                 {
@@ -472,7 +472,7 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("clear_ignore_patterns", new Dictionary<string, object>());
+                var result = await client.CallToolAsync("clear_ignore_patterns", []);
                 var jsonText = result.Content.First(c => c.Type == "text").Text;
                 if (jsonText != null)
                 {
@@ -544,7 +544,7 @@ class Program
         {
             try
             {
-                var result = await client.CallToolAsync("analyze_packages", new Dictionary<string, object>());
+                var result = await client.CallToolAsync("analyze_packages", []);
                 var jsonText = result.Content.First(c => c.Type == "text").Text;
                 
                 // Try to deserialize to our expected type

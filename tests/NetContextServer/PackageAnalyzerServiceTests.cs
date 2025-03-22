@@ -3,7 +3,6 @@ using NetContextServer.Services;
 
 namespace NetContextServer.Tests;
 
-[Trait("Category", "AI_Generated")]
 [Collection("NetContextServer Tests")]
 public class PackageAnalyzerServiceTests : IDisposable
 {

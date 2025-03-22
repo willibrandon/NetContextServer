@@ -12,6 +12,12 @@ public class ProjectOperationTests : IAsyncLifetime
     private readonly string _testCsFilePath;
     private readonly IMcpClient _client;
 
+    private static readonly JsonSerializerOptions DefaultJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private class ErrorResponse
     {
         public string Error { get; set; } = string.Empty;
@@ -70,7 +76,7 @@ public class ProjectOperationTests : IAsyncLifetime
 
         // Act
         var result = await _client.CallToolAsync("list_projects", 
-            new Dictionary<string, object>());
+            []);
 
         // Assert
         Assert.NotNull(result);
@@ -78,13 +84,7 @@ public class ProjectOperationTests : IAsyncLifetime
         Assert.NotNull(content);
         Assert.NotNull(content.Text);
 
-        var options = new JsonSerializerOptions 
-        { 
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
-        var projects = JsonSerializer.Deserialize<string[]>(content.Text, options);
+        var projects = JsonSerializer.Deserialize<string[]>(content.Text, DefaultJsonOptions);
         Assert.NotNull(projects);
         Assert.Contains(projects, p => p.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase));
     }
@@ -100,7 +100,7 @@ public class ProjectOperationTests : IAsyncLifetime
 
         // Act
         var result = await _client.CallToolAsync("list_solutions", 
-            new Dictionary<string, object>());
+            []);
 
         // Assert
         Assert.NotNull(result);
@@ -108,13 +108,7 @@ public class ProjectOperationTests : IAsyncLifetime
         Assert.NotNull(content);
         Assert.NotNull(content.Text);
 
-        var options = new JsonSerializerOptions 
-        { 
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
-        var solutions = JsonSerializer.Deserialize<string[]>(content.Text, options);
+        var solutions = JsonSerializer.Deserialize<string[]>(content.Text, DefaultJsonOptions);
         Assert.NotNull(solutions);
         Assert.Contains(solutions, s => s.EndsWith(".sln", StringComparison.OrdinalIgnoreCase));
     }
@@ -136,13 +130,7 @@ public class ProjectOperationTests : IAsyncLifetime
         Assert.NotNull(content);
         Assert.NotNull(content.Text);
 
-        var options = new JsonSerializerOptions 
-        { 
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
-        var projects = JsonSerializer.Deserialize<string[]>(content.Text, options);
+        var projects = JsonSerializer.Deserialize<string[]>(content.Text, DefaultJsonOptions);
         Assert.NotNull(projects);
         Assert.Contains(projects, p => p.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase));
     }
@@ -163,13 +151,7 @@ public class ProjectOperationTests : IAsyncLifetime
         Assert.NotNull(content);
         Assert.NotNull(content.Text);
 
-        var options = new JsonSerializerOptions 
-        { 
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
-        var response = JsonSerializer.Deserialize<string[]>(content.Text, options);
+        var response = JsonSerializer.Deserialize<string[]>(content.Text, DefaultJsonOptions);
         Assert.NotNull(response);
         Assert.NotEmpty(response);
         Assert.StartsWith("Error:", response[0]);

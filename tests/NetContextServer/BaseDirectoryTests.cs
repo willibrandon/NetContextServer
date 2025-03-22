@@ -1,20 +1,18 @@
 using ModelContextProtocol.Client;
 using System.Text.Json;
-using Xunit;
 
 namespace NetContextServer.Tests;
 
 [Collection("NetContextServer Collection")]
-public class BaseDirectoryTests : IAsyncLifetime
+public class BaseDirectoryTests(NetContextServerFixture fixture) : IAsyncLifetime
 {
-    private readonly string _testDir;
-    private readonly IMcpClient _client;
+    private readonly string _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerBaseDirectoryTests_" + Guid.NewGuid());
+    private readonly IMcpClient _client = fixture.Client;
 
-    public BaseDirectoryTests(NetContextServerFixture fixture)
+    private static readonly JsonSerializerOptions DefaultJsonOptions = new()
     {
-        _client = fixture.Client;
-        _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerBaseDirectoryTests_" + Guid.NewGuid());
-    }
+        PropertyNameCaseInsensitive = true
+    };
 
     public async Task InitializeAsync()
     {
@@ -105,7 +103,7 @@ public class BaseDirectoryTests : IAsyncLifetime
 
         // Act
         var result = await _client.CallToolAsync("get_base_directory", 
-            new Dictionary<string, object>());
+            []);
 
         // Assert
         Assert.NotNull(result);
@@ -115,7 +113,7 @@ public class BaseDirectoryTests : IAsyncLifetime
 
         var response = JsonSerializer.Deserialize<BaseDirectoryResponse>(
             content.Text,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            DefaultJsonOptions);
 
         Assert.NotNull(response);
         Assert.Equal(tempDir, response.BaseDirectory);
@@ -138,7 +136,7 @@ public class BaseDirectoryTests : IAsyncLifetime
 
         // Act
         var result = await _client.CallToolAsync("get_base_directory", 
-            new Dictionary<string, object>());
+            []);
 
         // Assert
         Assert.NotNull(result);
@@ -148,7 +146,7 @@ public class BaseDirectoryTests : IAsyncLifetime
 
         var response = JsonSerializer.Deserialize<BaseDirectoryResponse>(
             content.Text,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            DefaultJsonOptions);
 
         Assert.NotNull(response);
         Assert.Equal(tempDir, response.BaseDirectory);

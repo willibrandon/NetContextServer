@@ -3,7 +3,7 @@ namespace NetContextServer.Services;
 internal static class FileService
 {
     public static readonly string[] DotNetFilePatterns = 
-    {
+    [
         "*.cs",    // C# source files
         "*.vb",    // Visual Basic source files
         "*.fs",    // F# source files
@@ -12,7 +12,7 @@ internal static class FileService
         "*.cshtml", // Razor views
         "*.vbhtml", // VB Razor views
         "*.razor"  // Blazor components
-    };
+    ];
 
     public static string[] ListProjects()
     {
@@ -71,7 +71,7 @@ internal static class FileService
                 .Where(f => !IgnorePatternService.ShouldIgnoreFile(f)));
         }
 
-        return allFiles.ToArray();
+        return [.. allFiles];
     }
 
     public static string OpenFile(string filePath)

@@ -1,6 +1,4 @@
-using ModelContextProtocol;
 using ModelContextProtocol.Server;
-using NetContextServer.Models;
 using NetContextServer.Services;
 using System.ComponentModel;
 using System.Text.Json;
@@ -15,6 +13,8 @@ public static class FileTools
     {
         WriteIndented = true
     };
+
+    private static readonly string[] ErrorDirectoryNotFound = ["Error: Directory not found"];
 
     [McpTool("list_files")]
     [Description("Lists all .NET source files in the specified project directory.")]
@@ -62,7 +62,7 @@ public static class FileTools
     {
         if (!Directory.Exists(directory))
         {
-            return JsonSerializer.Serialize(new[] { "Error: Directory not found" }, DefaultJsonOptions);
+            return JsonSerializer.Serialize(ErrorDirectoryNotFound, DefaultJsonOptions);
         }
 
         FileValidationService.SetBaseDirectory(directory);
