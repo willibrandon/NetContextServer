@@ -11,20 +11,15 @@ namespace NetContextServer.Services;
 /// Provides functionality for analyzing NuGet package references in .NET projects,
 /// including version checking, usage analysis, and update recommendations.
 /// </summary>
-public class PackageAnalyzerService
+/// <remarks>
+/// Initializes a new instance of the PackageAnalyzerService class.
+/// </remarks>
+/// <param name="baseDirectory">The base directory for package analysis. If null, uses the current directory.</param>
+public class PackageAnalyzerService(string? baseDirectory = null)
 {
     private static readonly SourceRepository NuGetRepository = Repository.Factory.GetCoreV3("https://api.nuget.org/v3/index.json");
     private static readonly SourceCacheContext Cache = new();
-    private readonly string _baseDirectory;
-
-    /// <summary>
-    /// Initializes a new instance of the PackageAnalyzerService class.
-    /// </summary>
-    /// <param name="baseDirectory">The base directory for package analysis. If null, uses the current directory.</param>
-    public PackageAnalyzerService(string? baseDirectory = null)
-    {
-        _baseDirectory = baseDirectory ?? Directory.GetCurrentDirectory();
-    }
+    private readonly string _baseDirectory = baseDirectory ?? Directory.GetCurrentDirectory();
 
     /// <summary>
     /// Gets all package references from a specified project file.
