@@ -68,9 +68,14 @@ Cursor AI is one of the primary ways to use NetContextServer. Here's how to set 
 5. Start coding! Try asking Cursor AI questions about your codebase.
 
 Example prompts to try:
-- "Find all authentication-related code in the project"
-- "Show me how error handling is implemented"
-- "List all API endpoints in the codebase"
+- "List all .NET source files in this project directory"
+- "Search for exact text matches in the code files"
+- "Analyze NuGet packages in all projects"
+- "Get the current list of ignore patterns"
+- "Add these ignore patterns: *.generated.cs, bin/*"
+- "List all .csproj files in this directory"
+- "Show me the contents of this file"
+- "What's the current base directory for file operations?"
 
 ## Common Operations
 
