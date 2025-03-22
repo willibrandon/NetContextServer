@@ -194,9 +194,3 @@ The server provides clear error messages for common scenarios:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
-## Acknowledgments
-
-- Built with [MCPSharp](https://github.com/afrise/MCPSharp)
-- Uses Azure OpenAI for semantic embeddings
-- Inspired by the Model Context Protocol 
