@@ -1,6 +1,85 @@
 # NetContextServer
 
-A .NET Codebase Context MCP Server that provides AI assistants with access to your .NET codebase through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction). This allows AI tools to understand and work with your specific codebase context.
+<div align="center">
+
+🔍 **Supercharge Your AI Coding Assistant with Deep .NET Codebase Understanding**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Built with .NET](https://img.shields.io/badge/Built%20with-.NET-512BD4)](https://dotnet.microsoft.com/)
+[![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-brightgreen)](https://modelcontextprotocol.io/)
+
+</div>
+
+NetContextServer empowers AI coding assistants like Cursor AI to deeply understand your .NET codebase through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction). This means more accurate code suggestions, better answers to your questions, and a more productive coding experience.
+
+![Demo of NetContextServer with Cursor AI](.github/images/demo.gif)
+
+## ✨ Key Features
+
+- 🧠 **Semantic Code Search**: Find code by describing what you're looking for in natural language
+- 🔍 **Intelligent Navigation**: Help AI tools understand your project structure and dependencies
+- 🛡️ **Built-in Security**: Safe file access with automatic protection of sensitive data
+- 🚀 **Cursor AI Integration**: Seamless setup with Cursor AI for enhanced coding assistance
+- 📦 **Package Analysis**: Understand your dependencies and get update recommendations
+- ⚡ **Fast & Efficient**: Quick indexing and response times for large codebases
+
+## 🚀 Quick Start
+
+1. **Clone & Build**:
+```bash
+git clone https://github.com/willibrandon/NetContextServer.git
+cd NetContextServer
+dotnet build
+```
+
+2. **Set Up** (optional, for semantic search):
+```bash
+# Set Azure OpenAI credentials in environment:
+AZURE_OPENAI_ENDPOINT=your_endpoint
+AZURE_OPENAI_API_KEY=your_key
+```
+
+3. **Start Using**:
+```bash
+# Point to your project
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "path/to/your/project"
+
+# Try semantic search
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-search --query "find authentication logic"
+```
+
+👉 **[Read our Getting Started Guide](docs/getting-started.md)** for detailed setup instructions and best practices.
+
+## 🔌 Integration with Cursor AI
+
+1. Open Cursor AI
+2. Press `Cmd/Ctrl + Shift + P`
+3. Type "Configure MCP Server"
+4. Enter:
+```json
+{
+  "command": "dotnet",
+  "args": ["run", "--project", "path/to/NetContextServer/src/NetContextServer/NetContextServer.csproj"]
+}
+```
+
+Now Cursor AI can understand your codebase! Try asking it questions like:
+- "List all .NET source files in this project directory"
+- "Search for exact text matches in the code files"
+- "Analyze NuGet packages in all projects"
+- "Get the current list of ignore patterns"
+- "Add these ignore patterns: *.generated.cs, bin/*"
+- "List all .csproj files in this directory"
+- "Show me the contents of this file"
+- "What's the current base directory for file operations?"
+
+## 📚 Documentation
+
+- [Getting Started Guide](docs/getting-started.md) - Quick setup and first steps
+- [Tool Reference](docs/tool-reference.md) - Detailed tool documentation
+- [Configuration Guide](docs/configuration.md) - Advanced configuration options
+- [Integration Examples](docs/integrations.md) - Using with different AI tools
+- [Contributing Guide](CONTRIBUTING.md) - How to help improve NetContextServer
 
 ## Features
 
