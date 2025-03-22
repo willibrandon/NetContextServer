@@ -1,4 +1,3 @@
-using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using NetContextServer.Models;
 using NetContextServer.Services;
@@ -7,14 +6,33 @@ using System.Text.Json;
 
 namespace NetContextServer.Tools;
 
+/// <summary>
+/// Provides MCP tools for analyzing NuGet packages in .NET projects.
+/// </summary>
 [McpToolType]
 public static class PackageTools
 {
+    /// <summary>
+    /// Default JSON serializer options used for package analysis output.
+    /// </summary>
     private static readonly JsonSerializerOptions DefaultJsonOptions = new()
     {
         WriteIndented = true
     };
 
+    /// <summary>
+    /// Analyzes NuGet packages in all projects found in the base directory.
+    /// </summary>
+    /// <returns>
+    /// A JSON string containing analysis results for each project, including:
+    /// - Package versions and available updates
+    /// - Usage analysis
+    /// - Recommendations for updates or removal
+    /// </returns>
+    /// <remarks>
+    /// This operation requires the base directory to be set and contain valid .NET projects.
+    /// The analysis includes checking for updates, detecting package usage, and providing recommendations.
+    /// </remarks>
     [McpTool("analyze_packages")]
     [Description("Analyzes NuGet packages in all projects found in the base directory.")]
     public static async Task<string> AnalyzePackagesAsync()
@@ -60,4 +78,4 @@ public static class PackageTools
             return JsonSerializer.Serialize(new { Error = ex.Message }, DefaultJsonOptions);
         }
     }
-} 
+}
