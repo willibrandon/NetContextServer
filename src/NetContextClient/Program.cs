@@ -25,7 +25,8 @@ class Program
             TransportType = TransportTypes.StdIo,
             TransportOptions = new()
             {
-                ["command"] = "NetContextServer.exe",
+                ["command"] = "dotnet",
+                ["arguments"] = "run --project ./src/NetContextServer/NetContextServer.csproj",
             }
         };
 
