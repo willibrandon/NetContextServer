@@ -1,3 +1,4 @@
+using ModelContextProtocol.Client;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -10,7 +11,7 @@ public class SearchOperationTests : IDisposable
     private readonly string _testDir;
     private readonly string _testProjectPath;
     private readonly string _testCsFilePath;
-    private readonly MCPClient client;
+    private readonly IMcpClient client;
 
     public SearchOperationTests()
     {

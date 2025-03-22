@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using ModelContextProtocol.Client;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace NetContextServer.Tests;
@@ -11,7 +12,7 @@ public class IgnoreOperationTests : IDisposable
     private readonly string _testProjectPath;
     private readonly string _testCsFilePath;
 
-    private readonly MCPClient client;
+    private readonly IMcpClient client;
 
     public IgnoreOperationTests()
     {

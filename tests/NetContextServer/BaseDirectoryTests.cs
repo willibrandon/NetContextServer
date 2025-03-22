@@ -1,3 +1,4 @@
+using ModelContextProtocol.Client;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -8,7 +9,7 @@ namespace NetContextServer.Tests;
 public class BaseDirectoryTests : IDisposable
 {
     private readonly string _testDir;
-    private readonly MCPClient client;
+    private readonly IMcpClient client;
 
     public BaseDirectoryTests()
     {

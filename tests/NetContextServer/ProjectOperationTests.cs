@@ -1,3 +1,4 @@
+using ModelContextProtocol.Client;
 using System.Diagnostics;
 using System.Text.Json;
 using Xunit;
@@ -11,7 +12,7 @@ public class ProjectOperationTests : IDisposable
     private readonly string _testDir;
     private readonly string _testProjectPath;
     private readonly string _testCsFilePath;
-    private readonly MCPClient client;
+    private readonly IMcpClient client;
 
     public ProjectOperationTests()
     {
