@@ -1,5 +1,4 @@
-﻿using MCPSharp;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text.Json;
 
 namespace NetContextServer.Tests;
