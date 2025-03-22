@@ -136,8 +136,48 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-pac
 
 **Output includes:**
 - Package versions and available updates
-- Usage analysis
+- Usage analysis and detection of unused packages
+- Security vulnerability warnings
 - Recommendations for updates or removal
+- Deep transitive dependency analysis
+- Visual dependency graph representation with smart grouping
+
+**Dependency Graph Features:**
+- Hierarchical tree visualization in ASCII-art format
+- Automatic grouping of related dependencies by namespace
+- Color-coding of dependencies in the console:
+  - Cyan: Leaf dependencies (end nodes)
+  - Green: Intermediate dependencies
+  - Yellow: Grouped namespaces
+- Clear visual separation between dependency groups
+- Configurable depth of transitive dependency resolution
+
+**Example Output:**
+```
+Project: MyProject.csproj
+  Found 3 package(s):
+  - ✅ Newtonsoft.Json (13.0.1)
+    Used in 5 location(s)
+
+    Dependencies:
+    └─ Newtonsoft.Json
+       ├─ Microsoft.*
+       │  └─ Microsoft.CSharp
+       └─ System.*
+          └─ System.ComponentModel
+
+  - 🔄 Microsoft.Extensions.DependencyInjection (5.0.2 → 6.0.1)
+    Update available: 6.0.1
+    Used in 3 location(s)
+
+    Dependencies:
+    └─ Microsoft.Extensions.DependencyInjection
+       └─ Microsoft.*
+          └─ Microsoft.Extensions.DependencyInjection.Abstractions
+
+  - ⚠️ Unused.Package (1.0.0)
+    Consider removing this unused package
+```
 
 ## Ignore Pattern Management
 

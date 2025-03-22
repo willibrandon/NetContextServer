@@ -49,4 +49,9 @@ public class PackageAnalysis
     /// Gets or sets the list of packages that depend on this package.
     /// </summary>
     public List<string> TransitiveDependencies { get; set; } = [];
+    
+    /// <summary>
+    /// Gets or sets a visual representation of the dependency graph as ASCII art.
+    /// </summary>
+    public string? DependencyGraph { get; set; }
 } 

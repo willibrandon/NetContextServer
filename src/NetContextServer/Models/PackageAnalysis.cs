@@ -49,4 +49,9 @@ public class PackageAnalysis
     /// Gets or sets the recommended action to take regarding this package (e.g., update, remove, etc.).
     /// </summary>
     public string? RecommendedAction { get; set; }
+
+    /// <summary>
+    /// Gets or sets a visual representation of the dependency graph as ASCII art.
+    /// </summary>
+    public string? DependencyGraph { get; set; }
 }

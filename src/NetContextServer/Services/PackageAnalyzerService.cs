@@ -93,6 +93,49 @@ public class PackageAnalyzerService(string? baseDirectory = null)
                     analysis.LatestVersion = latestVersion.ToString();
                 }
             }
+            
+            // Resolve transitive dependencies
+            try
+            {
+                var dependencyResource = await NuGetRepository.GetResourceAsync<DependencyInfoResource>();
+                var packageDependencyInfo = await dependencyResource.ResolvePackage(
+                    new NuGet.Packaging.Core.PackageIdentity(package.Id, currentVersion),
+                    NuGet.Frameworks.NuGetFramework.ParseFolder("net6.0"),
+                    Cache,
+                    NullLogger.Instance,
+                    CancellationToken.None);
+                
+                if (packageDependencyInfo != null)
+                {
+                    var dependencies = new List<string>();
+                    var visited = new HashSet<string>();
+                    
+                    // Start with the direct dependencies
+                    foreach (var dependency in packageDependencyInfo.Dependencies)
+                    {
+                        if (!visited.Contains(dependency.Id))
+                        {
+                            visited.Add(dependency.Id);
+                            dependencies.Add(dependency.Id);
+                            
+                            // Recursively gather deeper dependencies
+                            await GatherDependenciesForPackageAsync(
+                                dependency.Id, 
+                                dependency.VersionRange.MinVersion ?? NuGetVersion.Parse("0.0.1"), 
+                                dependencies, 
+                                visited, 
+                                1, 
+                                3);
+                        }
+                    }
+                    
+                    analysis.TransitiveDependencies = dependencies;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error resolving dependencies for {package.Id}: {ex.Message}");
+            }
 
             // Check usage
             try
@@ -155,5 +198,47 @@ public class PackageAnalyzerService(string? baseDirectory = null)
         }
 
         return analysis;
+    }
+
+    private async Task GatherDependenciesForPackageAsync(string packageId, NuGetVersion packageVersion, List<string> dependencies, HashSet<string> visited, int currentDepth, int maxDepth)
+    {
+        if (currentDepth > maxDepth) return;
+        if (visited.Contains(packageId)) return;
+        visited.Add(packageId);
+
+        dependencies.Add(packageId);
+
+        try
+        {
+            var dependencyResource = await NuGetRepository.GetResourceAsync<DependencyInfoResource>();
+            var dependencyInfo = await dependencyResource.ResolvePackage(
+                new NuGet.Packaging.Core.PackageIdentity(packageId, packageVersion),
+                NuGet.Frameworks.NuGetFramework.ParseFolder("net6.0"),
+                Cache,
+                NullLogger.Instance,
+                CancellationToken.None);
+            
+            if (dependencyInfo != null)
+            {
+                foreach (var childDependency in dependencyInfo.Dependencies)
+                {
+                    if (!visited.Contains(childDependency.Id))
+                    {
+                        var minVersion = childDependency.VersionRange.MinVersion ?? NuGetVersion.Parse("0.0.1");
+                        await GatherDependenciesForPackageAsync(
+                            childDependency.Id, 
+                            minVersion, 
+                            dependencies, 
+                            visited, 
+                            currentDepth + 1, 
+                            maxDepth);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error gathering dependencies for {packageId}: {ex.Message}");
+        }
     }
 }
