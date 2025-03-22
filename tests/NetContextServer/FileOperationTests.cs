@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Text.Json;
 
 namespace NetContextServer.Tests;
 
@@ -9,6 +10,8 @@ public class FileOperationTests : IDisposable
     private readonly string _testDir;
     private readonly string _testProjectPath;
     private readonly string _testCsFilePath;
+
+    private readonly MCPClient client;
 
     public FileOperationTests()
     {
@@ -34,7 +37,7 @@ public class FileOperationTests : IDisposable
         }
 
         // Setup test directory and files
-        _testDir = Path.Combine(Path.GetTempPath(), $"NetContextServer_Test_{Guid.NewGuid()}");
+        _testDir = Path.Combine(Path.GetTempPath(), "NetContextServerTests");
         _testProjectPath = Path.Combine(_testDir, "Test.csproj");
         _testCsFilePath = Path.Combine(_testDir, "Test.cs");
 
@@ -42,112 +45,96 @@ public class FileOperationTests : IDisposable
         File.WriteAllText(_testProjectPath, "<Project />");
         File.WriteAllText(_testCsFilePath, "public class Test { }");
 
-        // Set base directory for tests
-        Tools.SetBaseDirectory(_testDir);
+        var executableName = OperatingSystem.IsWindows() ? "NetContextServer.exe" : "NetContextServer";
+        client = new MCPClient("Test Client", "1.0.0", executableName);
     }
 
     [Fact]
-    public void ListFiles_WithValidPath_ReturnsFiles()
+    public async Task ListFiles_WithValidPath_ReturnsJsonArray()
     {
-        // Act
-        var files = Tools.ListFiles(_testDir);
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
 
-        // Assert
+        var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", _testDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
+
         Assert.NotNull(files);
-        Assert.Contains(files, f => f.EndsWith("test.cs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".cs"));
     }
 
     [Fact]
-    public void ListFiles_WithInvalidPath_ReturnsError()
+    public async Task ListFiles_WithInvalidPath_ReturnsError()
     {
-        // Arrange
         var invalidPath = Path.Combine(_testDir, "NonExistent");
-        
-        // Act
-        var result = Tools.ListFiles(invalidPath);
+        var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", invalidPath } });
+        var error = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.Contains(result, e => e.StartsWith("Error:"));
+        Assert.NotNull(error);
+        Assert.Contains(error, e => e.StartsWith("Error:"));
     }
 
     [Fact]
-    public void OpenFile_WithValidPath_ReturnsContent()
+    public async Task OpenFile_WithValidPath_ReturnsContent()
     {
-        // Arrange
         var content = "test content";
         File.WriteAllText(_testCsFilePath, content);
 
-        // Act
-        var result = Tools.OpenFile(_testCsFilePath);
-
-        // Assert
-        Assert.Equal(content, result);
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", _testCsFilePath } });
+        Assert.Equal(content, result.Content[0].Text);
     }
 
     [Fact]
-    public void OpenFile_WithInvalidPath_ReturnsError()
+    public async Task OpenFile_WithInvalidPath_ReturnsError()
     {
-        // Arrange
         var invalidPath = Path.Combine(_testDir, "NonExistent.cs");
-        
-        // Act
-        var result = Tools.OpenFile(invalidPath);
-
-        // Assert
-        Assert.StartsWith("Error:", result);
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", invalidPath } });
+        Assert.StartsWith("Error:", result.Content[0].Text);
     }
 
     [Fact]
-    public void OpenFile_WithLargeContent_ReturnsTruncated()
+    public async Task OpenFile_WithLargeContent_ReturnsTruncated()
     {
-        // Arrange
         var largeContent = new string('x', 150_000);
         File.WriteAllText(_testCsFilePath, largeContent);
 
-        // Act
-        var result = Tools.OpenFile(_testCsFilePath);
-
-        // Assert
-        Assert.Contains("[Truncated]", result);
-        Assert.True(result.Length < largeContent.Length);
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", _testCsFilePath } });
+        Assert.Contains("[Truncated]", result.Content[0].Text);
+        Assert.True(result.Content[0].Text.Length < largeContent.Length);
     }
 
     [Fact]
-    public void ListSourceFiles_WithValidPath_ReturnsSourceFiles()
+    public async Task ListSourceFiles_WithValidPath_ReturnsSourceFiles()
     {
-        // Arrange
         // Create test source files
         File.WriteAllText(Path.Combine(_testDir, "Test.cs"), "");
         File.WriteAllText(Path.Combine(_testDir, "Test.vb"), "");
         File.WriteAllText(Path.Combine(_testDir, "Test.fs"), "");
 
-        // Act
-        var files = Tools.ListSourceFiles(_testDir);
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", _testDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
 
-        // Assert
         Assert.NotNull(files);
-        Assert.Contains(files, f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(files, f => f.EndsWith(".vb", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(files, f => f.EndsWith(".fs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".cs"));
+        Assert.Contains(files, f => f.EndsWith(".vb"));
+        Assert.Contains(files, f => f.EndsWith(".fs"));
     }
 
     [Fact]
-    public void ListSourceFiles_WithInvalidPath_ReturnsError()
+    public async Task ListSourceFiles_WithInvalidPath_ReturnsError()
     {
-        // Arrange
         var invalidPath = Path.Combine(_testDir, "NonExistent");
-        
-        // Act
-        var result = Tools.ListSourceFiles(invalidPath);
+        var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", invalidPath } });
+        var error = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.Contains(result, e => e.StartsWith("Error:"));
+        Assert.NotNull(error);
+        Assert.Contains(error, e => e.StartsWith("Error:"));
     }
 
     [Fact]
-    public void ListFiles_IgnoresSensitiveFiles()
+    public async Task ListFiles_IgnoresSensitiveFiles()
     {
         // Create test files
         var testCsPath = Path.Combine(_testDir, "test.cs");
@@ -158,36 +145,39 @@ public class FileOperationTests : IDisposable
         File.WriteAllText(envPath, "");
         File.WriteAllText(configPath, "");
 
-        var result = Tools.ListFiles(_testDir);
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", _testDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
 
-        Assert.NotNull(result);
-        Assert.Single(result); // Should only contain the .cs file
-        Assert.Equal(testCsPath, result[0], ignoreCase: true);
+        Assert.NotNull(files);
+        Assert.Single(files); // Should only contain the .cs file
+        Assert.Equal(testCsPath, files[0], ignoreCase: true);
     }
 
     [Fact]
-    public void OpenFile_BlocksAccessOutsideBaseDirectory()
+    public async Task OpenFile_BlocksAccessOutsideBaseDirectory()
     {
         var outsidePath = Path.Combine(Path.GetTempPath(), "outside.txt");
         File.WriteAllText(outsidePath, "secret content");
 
-        var result = Tools.OpenFile(outsidePath);
-        Assert.Contains("Error: Access to this file is not allowed", result);
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", outsidePath } });
+        Assert.Contains("Error: Access to this file is not allowed", result.Content[0].Text);
     }
 
     [Fact]
-    public void OpenFile_BlocksSensitiveFiles()
+    public async Task OpenFile_BlocksSensitiveFiles()
     {
         var secretFile = Path.Combine(_testDir, "secrets.env");
         File.WriteAllText(secretFile, "secret content");
 
-        var result = Tools.OpenFile(secretFile);
-        Assert.Contains("Error: This file type is restricted", result);
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("open_file", new Dictionary<string, object> { { "filePath", secretFile } });
+        Assert.Contains("Error: This file type is restricted", result.Content[0].Text);
     }
 
     [Fact]
     [Trait("Category", "AI_Generated")]
-    public void ListFiles_ShouldFindAllNetFileTypes()
+    public async Task ListFiles_ShouldFindAllNetFileTypes()
     {
         // Create test files of different types
         var testFiles = new Dictionary<string, string>
@@ -208,25 +198,27 @@ public class FileOperationTests : IDisposable
             File.WriteAllText(Path.Combine(_testDir, file.Key), file.Value);
         }
 
-        var result = Tools.ListFiles(_testDir);
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", _testDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
 
-        Assert.NotNull(result);
+        Assert.NotNull(files);
         // Should find all .NET files but not the .txt file
-        Assert.Equal(8, result!.Length);
-        Assert.Contains(result, f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".vb", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".fs", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".fsi", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".vbhtml", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".razor", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(result, f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(8, files!.Length);
+        Assert.Contains(files, f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".vb", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fsi", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".vbhtml", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".razor", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(files, f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
     [Trait("Category", "AI_Generated")]
-    public void ListSourceFiles_ShouldFindAllNetSourceFiles()
+    public async Task ListSourceFiles_ShouldFindAllNetSourceFiles()
     {
         // Create test files in a project directory structure
         var projectDir = Path.Combine(_testDir, "TestProject");
@@ -250,24 +242,36 @@ public class FileOperationTests : IDisposable
             File.WriteAllText(Path.Combine(projectDir, file.Key), file.Value);
         }
 
-        var result = Tools.ListSourceFiles(projectDir);
+        await client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
+        var result = await client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", projectDir } });
+        var files = JsonSerializer.Deserialize<string[]>(result.Content[0].Text);
 
-        Assert.NotNull(result);
+        Assert.NotNull(files);
         // Should find all .NET files but not the .txt file
-        Assert.Equal(8, result!.Length);
-        Assert.Contains(result, f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".vb", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".fs", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".fsi", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".vbhtml", StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(result, f => f.EndsWith(".razor", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(result, f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(8, files!.Length);
+        Assert.Contains(files, f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".vb", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fs", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fsx", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".fsi", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".cshtml", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".vbhtml", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(files, f => f.EndsWith(".razor", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(files, f => f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase));
     }
 
     public void Dispose()
     {
+        // Reset the base directory
+        try
+        {
+            NetContextServer.SetBaseDirectory(Directory.GetCurrentDirectory());
+        }
+        catch
+        {
+            // Ignore errors when resetting base directory
+        }
+
         // Cleanup test directory
         try
         {
@@ -277,5 +281,38 @@ public class FileOperationTests : IDisposable
         {
             // Ignore cleanup errors
         }
+
+        // Dispose the client
+        try
+        {
+            client?.Dispose();
+        }
+        catch
+        {
+            // Ignore errors when disposing client
+        }
+
+        // Kill any remaining NetContextServer processes
+        try
+        {
+            foreach (var process in Process.GetProcessesByName("NetContextServer"))
+            {
+                try
+                {
+                    process.Kill();
+                    process.WaitForExit(1000);
+                }
+                catch
+                {
+                    // Ignore errors when killing processes
+                }
+            }
+        }
+        catch
+        {
+            // Ignore errors when getting processes
+        }
+
+        GC.SuppressFinalize(this);
     }
 }
