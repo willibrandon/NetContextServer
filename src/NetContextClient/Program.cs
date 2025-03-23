@@ -3,7 +3,10 @@ using ModelContextProtocol.Configuration;
 using ModelContextProtocol.Protocol.Transport;
 using NetContextClient.Models;
 using System.CommandLine;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Unicode;
 
 /// <summary>
 /// Command-line interface for the .NET Context Client, which interacts with the MCP server
@@ -18,6 +21,21 @@ using System.Text.Json;
 /// </summary>
 class Program
 {
+    /// <summary>
+    /// Default JSON serializer options used for response deserialization.
+    /// </summary>
+    private static readonly JsonSerializerOptions DefaultJsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
+        AllowTrailingCommas = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DictionaryKeyPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     /// <summary>
     /// Entry point for the command-line interface. Sets up the MCP client and defines
     /// the command structure using System.CommandLine.
@@ -703,6 +721,38 @@ class Program
             }
         });
 
+        // Think command
+        var thinkCommand = new Command("think", "Process a thought without making any state changes");
+        var thoughtOption = new Option<string>("--thought", "The thought to process") { IsRequired = true };
+        thinkCommand.AddOption(thoughtOption);
+        thinkCommand.SetHandler(async (string thought) =>
+        {
+            try
+            {
+                var result = await client.CallToolAsync("think", new() { ["thought"] = thought });
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
+                {
+                    var response = JsonSerializer.Deserialize<ThinkResponse>(jsonText, DefaultJsonOptions);
+                    
+                    if (!string.IsNullOrEmpty(response?.Error))
+                    {
+                        await Console.Error.WriteLineAsync($"Error: {response.Error}");
+                        return;
+                    }
+
+                    await Console.Out.WriteLineAsync("Processed thought:");
+                    await Console.Out.WriteLineAsync($"  {response?.Thought}");
+                    await Console.Out.WriteLineAsync($"\n{response?.Message}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, thoughtOption);
+
         rootCommand.AddCommand(helloCommand);
         rootCommand.AddCommand(setBaseDirCommand);
         rootCommand.AddCommand(getBaseDirCommand);
@@ -720,6 +770,7 @@ class Program
         rootCommand.AddCommand(getStateFileLocationCommand);
         rootCommand.AddCommand(semanticSearchCommand);
         rootCommand.AddCommand(analyzePackagesCommand);
+        rootCommand.AddCommand(thinkCommand);
         
         return await rootCommand.InvokeAsync(args);
     }
