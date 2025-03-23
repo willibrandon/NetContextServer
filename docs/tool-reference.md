@@ -245,6 +245,151 @@ Simple health check endpoint that returns a greeting message.
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- hello
 ```
 
+### `think`
+Provides a space for structured thinking during complex operations, allowing AI models to reason about actions, verify compliance with rules, and plan next steps without making any state changes.
+
+**Parameters:**
+- `--thought` (required): The thought or reasoning to process
+
+**Example:**
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- think --thought "Planning to refactor the authentication module to use JWT tokens"
+```
+
+**Output Example:**
+```json
+{
+  "thought": "Planning to refactor the authentication module to use JWT tokens",
+  "message": "Thought processed successfully",
+  "category": "Refactoring",
+  "timestamp": "2024-03-21T14:30:00.000Z",
+  "characterCount": 58
+}
+```
+
+**When to Use:**
+The think tool is particularly valuable when you want Claude to:
+1. Break down complex problems into manageable steps
+2. Analyze tool outputs before taking further actions
+3. Verify compliance with project policies and rules
+4. Plan multi-step operations that require careful consideration
+5. Document reasoning about architectural decisions
+
+> 📚 **Learn More**: This implementation is based on Anthropic's research on improving Claude's performance with a dedicated thinking space. [Read their detailed blog post](https://www.anthropic.com/engineering/claude-think-tool) for more insights.
+
+**Best Practice Examples:**
+
+1. **Multi-step Task Planning**
+```
+Before implementing a new feature, use the think tool to:
+- List all required functionality
+- Identify affected components and files
+- Plan the implementation sequence
+- Consider potential edge cases
+- Outline test scenarios
+
+Example: When adding authentication, think through: user flow, security requirements, error states, and affected API endpoints.
+```
+
+2. **Policy Compliance Verification**
+```
+When evaluating solutions against project guidelines, use the think tool to:
+- List all relevant policies
+- Check each policy requirement against the solution
+- Identify any compliance gaps
+- Document justifications for approach
+- Flag areas needing further review
+
+Example: "Before implementing this database change, let me verify it meets our data security policies..."
+```
+
+3. **Tool Output Analysis**
+```
+After receiving complex tool outputs (like search results or code analysis), use the think tool to:
+- Summarize key findings
+- Identify patterns across results
+- Connect information from different sources
+- Determine next investigation steps
+- Validate assumptions based on collected data
+
+Example: "After searching the codebase for auth-related files, I've found these patterns..."
+```
+
+4. **Architectural Decision Documentation**
+```
+When making architectural choices, use the think tool to:
+- Document decision criteria
+- Compare alternative approaches
+- List pros and cons of each option
+- Justify the chosen solution
+- Note implications for future development
+
+Example: "Considering three approaches for the caching layer: in-memory, Redis, or database..."
+```
+
+**Features:**
+- Automatic thought categorization:
+  - Refactoring: Code restructuring and improvements
+  - Security: Security-related considerations
+  - Performance: Optimization and performance improvements
+  - Testing: Testing and debugging thoughts
+  - Architecture: Design and architectural decisions
+  - General: Other uncategorized thoughts
+- Detailed metadata including timestamps and character counts
+- Content validation for potentially harmful patterns
+- Support for Unicode characters and emoji
+- Automatic log rotation for debugging logs
+
+**Limitations and Considerations:**
+- The tool is stateless - it doesn't persist thoughts between invocations
+- No state changes are made to the codebase
+- Maximum thought length is 32KB (32,768 characters)
+- Potentially harmful content is automatically rejected
+- Timestamps are in ISO 8601 format (UTC)
+- Log files are automatically rotated at 5MB
+
+**Logging Configuration:**
+Enable thought logging by setting the environment variable:
+```bash
+# PowerShell
+$env:NETCONTEXT_LOG_THOUGHTS="true"
+
+# Bash
+export NETCONTEXT_LOG_THOUGHTS="true"
+```
+
+Logs are stored in:
+- Location: `[AppDirectory]/logs/thoughts.log`
+- Format: `[Timestamp] JSON-formatted-thought-data`
+- Rotation: Automatic at 5MB with timestamp-based archiving
+
+**Integration with AI Workflows:**
+When working with Claude, the think tool can be used to:
+- Document decision-making processes
+- Create structured plans for complex refactoring
+- Validate approaches against project guidelines
+- Break down large tasks into smaller, manageable steps
+- Maintain a clear record of reasoning in the conversation history
+- Track thought patterns through categorization
+
+**Error Handling:**
+The tool returns error responses in the following cases:
+```json
+{
+  "error": "Missing required parameter 'thought'"
+}
+```
+```json
+{
+  "error": "Error: Thought exceeds maximum length of 32768 characters"
+}
+```
+```json
+{
+  "error": "Error: Thought contains invalid content"
+}
+```
+
 ## Default Ignore Patterns
 
 The following patterns are ignored by default to protect sensitive information:
