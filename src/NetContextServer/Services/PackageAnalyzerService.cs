@@ -200,7 +200,13 @@ public class PackageAnalyzerService(string? baseDirectory = null)
         return analysis;
     }
 
-    private async Task GatherDependenciesForPackageAsync(string packageId, NuGetVersion packageVersion, List<string> dependencies, HashSet<string> visited, int currentDepth, int maxDepth)
+    private static async Task GatherDependenciesForPackageAsync(
+        string packageId,
+        NuGetVersion packageVersion,
+        List<string> dependencies,
+        HashSet<string> visited,
+        int currentDepth,
+        int maxDepth)
     {
         if (currentDepth > maxDepth) return;
         if (visited.Contains(packageId)) return;

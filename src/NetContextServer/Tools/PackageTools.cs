@@ -102,8 +102,10 @@ public static class PackageTools
             return "No dependencies";
         }
         
-        var lines = new List<string>();
-        lines.Add($"└─ {rootPackageId}");
+        var lines = new List<string>
+        {
+            $"└─ {rootPackageId}"
+        };
         
         // Group dependencies for visualization
         var grouped = dependencies

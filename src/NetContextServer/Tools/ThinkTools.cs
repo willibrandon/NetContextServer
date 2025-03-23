@@ -2,7 +2,6 @@ using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 namespace NetContextServer.Tools;
@@ -12,8 +11,11 @@ namespace NetContextServer.Tools;
 /// to reason about its actions without making state changes.
 /// </summary>
 [McpToolType]
-public static class ThinkTools
+public static partial class ThinkTools
 {
+    [GeneratedRegex(@"(?i)(exec\s+\{|system\s*\(|eval\s*\(|<script|javascript:)", RegexOptions.Compiled, "en-US")]
+    private static partial Regex InvalidContentRegex();
+
     /// <summary>
     /// Default JSON serializer options used for think tool output.
     /// </summary>
@@ -49,9 +51,7 @@ public static class ThinkTools
     /// <summary>
     /// Pattern to detect potentially harmful content.
     /// </summary>
-    private static readonly Regex InvalidContentPattern = new(
-        @"(?i)(exec\s+\{|system\s*\(|eval\s*\(|<script|javascript:)",
-        RegexOptions.Compiled);
+    private static readonly Regex InvalidContentPattern = InvalidContentRegex();
 
     /// <summary>
     /// Provides a space for structured thinking during complex operations.
