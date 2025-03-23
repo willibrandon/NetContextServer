@@ -703,6 +703,17 @@ class Program
                                 {
                                     await Console.Out.WriteLineAsync($"    Has {package.TransitiveDependencies.Count} transitive dependencies");
                                 }
+
+                                // Add information about implicit usage if applicable
+                                if (package.ImplicitUsage)
+                                {
+                                    await Console.Out.WriteLineAsync($"    ℹ️ {package.PackageId} is implicitly used");
+                                    if (package.UsageLocations.Count > 0 && package.UsageLocations[0].Contains('['))
+                                    {
+                                        string categoryInfo = package.UsageLocations[0];
+                                        await Console.Out.WriteLineAsync($"    📦 {categoryInfo}");
+                                    }
+                                }
                             }
                             
                             await Console.Out.WriteLineAsync();

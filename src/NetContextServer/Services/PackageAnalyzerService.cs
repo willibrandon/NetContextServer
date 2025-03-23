@@ -22,6 +22,45 @@ public class PackageAnalyzerService(string? baseDirectory = null)
     private readonly string _baseDirectory = baseDirectory ?? Directory.GetCurrentDirectory();
 
     /// <summary>
+    /// Known infrastructure packages that are used implicitly without direct code references
+    /// </summary>
+    private static readonly Dictionary<string, string> KnownSpecialPackages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Test infrastructure
+        { "xunit", "Testing Framework" },
+        { "xunit.runner.visualstudio", "Test Runner" },
+        { "xunit.analyzers", "Test Analyzer" },
+        { "xunit.extensibility.core", "Test Framework" },
+        { "xunit.extensibility.execution", "Test Framework" },
+        { "xunit.assert", "Test Framework" },
+        { "xunit.core", "Test Framework" },
+        { "Xunit.SkippableFact", "Test Framework" },
+        { "NUnit", "Testing Framework" },
+        { "NUnit3TestAdapter", "Test Runner" },
+        { "MSTest.TestAdapter", "Test Runner" },
+        { "MSTest.TestFramework", "Test Framework" },
+        { "Moq", "Test Mocking" },
+        { "FluentAssertions", "Test Assertions" },
+        { "coverlet.collector", "Code Coverage Tool" },
+        { "coverlet.msbuild", "Code Coverage Tool" },
+        
+        // Build and analysis tools
+        { "Microsoft.NET.Test.Sdk", "Test SDK" },
+        { "Microsoft.CodeAnalysis.Analyzers", "Code Analyzer" },
+        { "Microsoft.CodeQuality.Analyzers", "Code Analyzer" },
+        { "Microsoft.CodeAnalysis.CSharp", "Code Analyzer" },
+        { "Microsoft.SourceLink", "Source Linking" },
+        { "Microsoft.Build", "Build Infrastructure" },
+        { "Microsoft.CodeCoverage", "Code Coverage" },
+        { "Microsoft.TestPlatform", "Test Platform" },
+        
+        // Common infrastructure packages
+        { "Microsoft.Extensions.Configuration", "Configuration Infrastructure" },
+        { "Microsoft.Extensions.DependencyInjection", "DI Infrastructure" },
+        { "Microsoft.Extensions.Logging", "Logging Infrastructure" }
+    };
+
+    /// <summary>
     /// Gets all package references from a specified project file.
     /// </summary>
     /// <param name="projectPath">The path to the project file (.csproj).</param>
@@ -54,6 +93,53 @@ public class PackageAnalyzerService(string? baseDirectory = null)
     }
 
     /// <summary>
+    /// Determines if a project is a test project based on various heuristics.
+    /// </summary>
+    /// <param name="projectPath">The path to the project file.</param>
+    /// <returns>True if the project appears to be a test project, false otherwise.</returns>
+    public static bool IsTestProject(string projectPath)
+    {
+        // Check the project name for test indicators
+        var fileName = Path.GetFileNameWithoutExtension(projectPath);
+        if (fileName.EndsWith(".Tests", StringComparison.OrdinalIgnoreCase) ||
+            fileName.EndsWith(".Test", StringComparison.OrdinalIgnoreCase) ||
+            fileName.Contains("Test", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Check if the project is in a tests directory
+        var directoryPath = Path.GetDirectoryName(projectPath) ?? string.Empty;
+        var directories = directoryPath.Split(Path.DirectorySeparatorChar);
+        if (directories.Any(d => d.Equals("tests", StringComparison.OrdinalIgnoreCase) || 
+                                 d.Equals("test", StringComparison.OrdinalIgnoreCase)))
+        {
+            return true;
+        }
+
+        try
+        {
+            // Check project file content for test references
+            var content = File.ReadAllText(projectPath);
+            if (content.Contains("Microsoft.NET.Test.Sdk") ||
+                content.Contains("xunit") ||
+                content.Contains("NUnit") ||
+                content.Contains("MSTest") ||
+                content.Contains("IsTestProject") ||
+                content.Contains("TestAdapter"))
+            {
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error reading project file: {ex.Message}");
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Analyzes a package reference to determine its usage, available updates, and provides recommendations.
     /// </summary>
     /// <param name="package">The package reference to analyze.</param>
@@ -74,6 +160,10 @@ public class PackageAnalyzerService(string? baseDirectory = null)
 
         try
         {
+            // Check if this is a known special package
+            bool isKnownSpecialPackage = KnownSpecialPackages.TryGetValue(package.Id, out string? packageCategory);
+            bool isTestProject = IsTestProject(package.ProjectPath);
+
             // Check for updates
             if (!NuGetVersion.TryParse(package.Version, out var currentVersion))
             {
@@ -137,46 +227,124 @@ public class PackageAnalyzerService(string? baseDirectory = null)
                 Console.WriteLine($"Error resolving dependencies for {package.Id}: {ex.Message}");
             }
 
-            // Check usage
-            try
+            // Mark package as used if it's a known special package in an appropriate project
+            if (isKnownSpecialPackage)
             {
-                var projectDir = Path.GetDirectoryName(package.ProjectPath) ?? _baseDirectory;
-                var sourceFiles = Directory.GetFiles(projectDir, "*.cs", SearchOption.AllDirectories)
-                    .Where(f => !f.Contains("\\obj\\") && !f.Contains("\\bin\\"))
-                    .ToArray();
-                
-                foreach (var file in sourceFiles)
+                // For test packages, they're only considered used in test projects
+                if (packageCategory?.Contains("Test") == true && isTestProject)
                 {
-                    try
+                    analysis.IsUsed = true;
+                    analysis.ImplicitUsage = true;
+                    analysis.UsageLocations.Add($"[{packageCategory}] - Implicitly used in test project");
+                }
+                // For non-test infrastructure packages, they're always considered used
+                else if (!packageCategory?.Contains("Test") == true)
+                {
+                    analysis.IsUsed = true;
+                    analysis.ImplicitUsage = true;
+                    analysis.UsageLocations.Add($"[{packageCategory}] - Implicitly used infrastructure package");
+                }
+            }
+
+            // If not already determined to be used, check for code references
+            if (!analysis.IsUsed)
+            {
+                try
+                {
+                    var projectDir = Path.GetDirectoryName(package.ProjectPath) ?? _baseDirectory;
+                    var sourceFiles = Directory.GetFiles(projectDir, "*.cs", SearchOption.AllDirectories)
+                        .Where(f => !f.Contains("\\obj\\") && !f.Contains("\\bin\\"))
+                        .ToArray();
+                    
+                    foreach (var file in sourceFiles)
                     {
-                        var content = await File.ReadAllTextAsync(file);
-                        var lines = content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
-                        
-                        // Enhanced usage detection with proper line splitting
-                        foreach (var line in lines)
+                        try
                         {
-                            var trimmedLine = line.Trim();
-                            if (trimmedLine.StartsWith("using") || trimmedLine.StartsWith("[assembly:"))
+                            var content = await File.ReadAllTextAsync(file);
+                            var lines = content.Split(["\r\n", "\r", "\n"], StringSplitOptions.None);
+                            
+                            foreach (var line in lines)
                             {
-                                if (trimmedLine.Contains($"{package.Id};", StringComparison.OrdinalIgnoreCase) ||
-                                    trimmedLine.Contains($"{package.Id}.", StringComparison.OrdinalIgnoreCase))
+                                var trimmedLine = line.Trim();
+                                if (trimmedLine.StartsWith("using") || trimmedLine.StartsWith("[assembly:"))
+                                {
+                                    if (trimmedLine.Contains($"{package.Id};", StringComparison.OrdinalIgnoreCase) ||
+                                        trimmedLine.Contains($"{package.Id}.", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        analysis.IsUsed = true;
+                                        analysis.UsageLocations.Add(file);
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Look for attribute usage in test projects which often don't have direct using statements
+                            if (isTestProject && !analysis.IsUsed)
+                            {
+                                var attributePatterns = new[] { 
+                                    $"[Fact", $"[Theory", $"[Test", $"[TestMethod", 
+                                    $"[Collection", $"[Trait", $"[SkippableFact", $"[Skip" 
+                                };
+                                
+                                foreach (var line in lines)
+                                {
+                                    var trimmedLine = line.Trim();
+                                    if (attributePatterns.Any(pattern => trimmedLine.StartsWith(pattern)))
+                                    {
+                                        if (package.Id.Contains("xunit") || package.Id.Contains("NUnit") || 
+                                            package.Id.Contains("MSTest") || package.Id.Contains("Fact"))
+                                        {
+                                            analysis.IsUsed = true;
+                                            analysis.ImplicitUsage = true;
+                                            analysis.UsageLocations.Add($"{file} (attribute usage)");
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            if (analysis.IsUsed) break;
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error reading file {file}: {ex.Message}");
+                        }
+                    }
+
+                    // Check for implicit usage in other file types
+                    if (!analysis.IsUsed)
+                    {
+                        // Check for analyzer usage in .editorconfig, Directory.Build.props, etc.
+                        var buildFiles = Directory.GetFiles(projectDir, "*.props", SearchOption.AllDirectories)
+                            .Concat(Directory.GetFiles(projectDir, "*.targets", SearchOption.AllDirectories))
+                            .Concat(Directory.GetFiles(projectDir, ".editorconfig", SearchOption.AllDirectories))
+                            .Concat(Directory.GetFiles(projectDir, "*.ruleset", SearchOption.AllDirectories))
+                            .ToArray();
+
+                        foreach (var file in buildFiles)
+                        {
+                            try
+                            {
+                                var content = await File.ReadAllTextAsync(file);
+                                if (content.Contains(package.Id, StringComparison.OrdinalIgnoreCase))
                                 {
                                     analysis.IsUsed = true;
-                                    analysis.UsageLocations.Add(file);
+                                    analysis.ImplicitUsage = true;
+                                    analysis.UsageLocations.Add($"{file} (build configuration)");
                                     break;
                                 }
                             }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Error reading file {file}: {ex.Message}");
+                            }
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error reading file {file}: {ex.Message}");
-                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error accessing directory: {ex.Message}");
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error accessing directory: {ex.Message}");
+                }
             }
 
             // Generate recommendations

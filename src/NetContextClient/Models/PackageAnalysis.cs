@@ -54,4 +54,10 @@ public class PackageAnalysis
     /// Gets or sets a visual representation of the dependency graph as ASCII art.
     /// </summary>
     public string? DependencyGraph { get; set; }
+    
+    /// <summary>
+    /// Gets or sets a value indicating whether the package is used implicitly
+    /// (e.g., test frameworks, build tools, analyzers) without direct code references.
+    /// </summary>
+    public bool ImplicitUsage { get; set; }
 } 

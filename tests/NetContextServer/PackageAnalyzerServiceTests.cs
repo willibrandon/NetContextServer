@@ -249,4 +249,107 @@ namespace Test { public class TestClass {} }");
                 "Expected package to have transitive dependencies even if DependencyGraph is not implemented");
         }
     }
+
+    [Fact]
+    public async Task AnalyzePackageAsync_DetectsImplicitlyUsedPackages()
+    {
+        // Arrange - Create a test project file that looks like a test project
+        var projectContent = @"
+<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include=""Microsoft.NET.Test.Sdk"" Version=""17.6.0"" />
+    <PackageReference Include=""xunit"" Version=""2.4.2"" />
+    <PackageReference Include=""xunit.runner.visualstudio"" Version=""2.4.5"" />
+    <PackageReference Include=""coverlet.collector"" Version=""6.0.0"" />
+  </ItemGroup>
+</Project>";
+        await CreateTestProjectFileAsync(projectContent);
+
+        // Create a test file with xUnit attributes to trigger implicit usage detection
+        var csFilePath = Path.Combine(_testProjectDir, "UnitTest1.cs");
+        await File.WriteAllTextAsync(csFilePath, @"
+namespace TestProject;
+
+public class UnitTest1
+{
+    [Fact]
+    public void Test1()
+    {
+        Assert.True(true);
+    }
+}");
+
+        // Test each relevant test package
+        var testPackages = new Dictionary<string, string>
+        {
+            { "Microsoft.NET.Test.Sdk", "17.6.0" },
+            { "xunit", "2.4.2" },
+            { "xunit.runner.visualstudio", "2.4.5" },
+            { "coverlet.collector", "6.0.0" }
+        };
+
+        foreach (var packageInfo in testPackages)
+        {
+            // Act - Create package reference and analyze
+            var package = new PackageReference
+            {
+                Id = packageInfo.Key,
+                Version = packageInfo.Value,
+                ProjectPath = _testProjectPath
+            };
+            var analysis = await _service.AnalyzePackageAsync(package);
+
+            // Assert
+            Assert.True(analysis.IsUsed, $"Package {packageInfo.Key} should be marked as used");
+            Assert.True(analysis.ImplicitUsage, $"Package {packageInfo.Key} should be marked as implicitly used");
+            Assert.NotEmpty(analysis.UsageLocations);
+            
+            // Verify the usage description includes the expected category information
+            var usageLocation = analysis.UsageLocations.First();
+            Assert.Contains("Implicitly used", usageLocation);
+            
+            // Different packages should have appropriate category labels
+            if (packageInfo.Key == "coverlet.collector")
+            {
+                Assert.Contains("Coverage", usageLocation);
+            }
+            else if (packageInfo.Key == "Microsoft.NET.Test.Sdk")
+            {
+                Assert.Contains("Test SDK", usageLocation);
+            }
+            else if (packageInfo.Key == "xunit" || packageInfo.Key == "xunit.runner.visualstudio")
+            {
+                Assert.Contains("Test", usageLocation);
+            }
+        }
+    }
+    
+    [Fact]
+    public void IsTestProject_CorrectlyIdentifiesTestProjects()
+    {
+        // Create test project file in "tests" directory
+        var testDir = Path.Combine(_testProjectDir, "tests");
+        Directory.CreateDirectory(testDir);
+        var testProjectPath = Path.Combine(testDir, "TestProject.Tests.csproj");
+        File.WriteAllText(testProjectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><IsPackable>false</IsPackable></PropertyGroup></Project>");
+        
+        // Create regular project file
+        var regularProjectPath = Path.Combine(_testProjectDir, "RegularProject.csproj");
+        File.WriteAllText(regularProjectPath, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        
+        // Create project with test-related content
+        var testContentProjectPath = Path.Combine(_testProjectDir, "ProjectWithTests.csproj");
+        File.WriteAllText(testContentProjectPath, "<Project><ItemGroup><PackageReference Include=\"xunit\" Version=\"2.4.2\" /></ItemGroup></Project>");
+        
+        // Act & Assert
+        Assert.True(PackageAnalyzerService.IsTestProject(testProjectPath), "Project with Tests in name should be identified as test project");
+        Assert.True(PackageAnalyzerService.IsTestProject(testContentProjectPath), "Project with xunit reference should be identified as test project");
+        Assert.False(PackageAnalyzerService.IsTestProject(regularProjectPath), "Regular project should not be identified as test project");
+    }
 }
