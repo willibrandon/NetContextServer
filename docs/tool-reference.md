@@ -245,6 +245,99 @@ Simple health check endpoint that returns a greeting message.
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- hello
 ```
 
+### `think`
+Provides a space for structured thinking during complex operations, allowing AI models to reason about actions, verify compliance with rules, and plan next steps without making any state changes.
+
+**Parameters:**
+- `--thought` (required): The thought or reasoning to process
+
+**Example:**
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- think --thought "Planning to refactor the authentication module to use JWT tokens"
+```
+
+**Output Example:**
+```json
+{
+  "thought": "Planning to refactor the authentication module to use JWT tokens",
+  "message": "Thought processed successfully",
+  "category": "Refactoring",
+  "timestamp": "2024-03-21T14:30:00.000Z",
+  "characterCount": 58
+}
+```
+
+**When to Use:**
+The think tool is particularly valuable when you want Claude to:
+1. Break down complex problems into manageable steps
+2. Analyze tool outputs before taking further actions
+3. Verify compliance with project policies and rules
+4. Plan multi-step operations that require careful consideration
+5. Document reasoning about architectural decisions
+
+**Features:**
+- Automatic thought categorization:
+  - Refactoring: Code restructuring and improvements
+  - Security: Security-related considerations
+  - Performance: Optimization and performance improvements
+  - Testing: Testing and debugging thoughts
+  - Architecture: Design and architectural decisions
+  - General: Other uncategorized thoughts
+- Detailed metadata including timestamps and character counts
+- Content validation for potentially harmful patterns
+- Support for Unicode characters and emoji
+- Automatic log rotation for debugging logs
+
+**Limitations and Considerations:**
+- The tool is stateless - it doesn't persist thoughts between invocations
+- No state changes are made to the codebase
+- Maximum thought length is 32KB (32,768 characters)
+- Potentially harmful content is automatically rejected
+- Timestamps are in ISO 8601 format (UTC)
+- Log files are automatically rotated at 5MB
+
+**Logging Configuration:**
+Enable thought logging by setting the environment variable:
+```bash
+# PowerShell
+$env:NETCONTEXT_LOG_THOUGHTS="true"
+
+# Bash
+export NETCONTEXT_LOG_THOUGHTS="true"
+```
+
+Logs are stored in:
+- Location: `[AppDirectory]/logs/thoughts.log`
+- Format: `[Timestamp] JSON-formatted-thought-data`
+- Rotation: Automatic at 5MB with timestamp-based archiving
+
+**Integration with AI Workflows:**
+When working with Claude, the think tool can be used to:
+- Document decision-making processes
+- Create structured plans for complex refactoring
+- Validate approaches against project guidelines
+- Break down large tasks into smaller, manageable steps
+- Maintain a clear record of reasoning in the conversation history
+- Track thought patterns through categorization
+
+**Error Handling:**
+The tool returns error responses in the following cases:
+```json
+{
+  "error": "Missing required parameter 'thought'"
+}
+```
+```json
+{
+  "error": "Error: Thought exceeds maximum length of 32768 characters"
+}
+```
+```json
+{
+  "error": "Error: Thought contains invalid content"
+}
+```
+
 ## Default Ignore Patterns
 
 The following patterns are ignored by default to protect sensitive information:

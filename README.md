@@ -76,6 +76,8 @@ Now Cursor AI can understand your codebase! Try asking it questions like:
 - "List all .csproj files in this directory"
 - "Show me the contents of this file"
 - "What's the current base directory for file operations?"
+- "Help me think through the authentication system design"
+- "Document my reasoning about this architectural decision"
 
 ## 📚 Documentation
 
@@ -93,6 +95,7 @@ Now Cursor AI can understand your codebase! Try asking it questions like:
 - 📖 **File Content Access**: Read source files with safety checks and size limits
 - 🛡️ **Security**: Built-in safeguards for sensitive files and directory access
 - 🎯 **Pattern Management**: Flexible ignore patterns for controlling file access
+- 💭 **Structured Thinking**: Document and validate reasoning about complex operations
 
 ## Building from Source
 
