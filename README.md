@@ -96,6 +96,11 @@ Now Cursor AI can understand your codebase! Try asking it questions like:
 - 🛡️ **Security**: Built-in safeguards for sensitive files and directory access
 - 🎯 **Pattern Management**: Flexible ignore patterns for controlling file access
 - 💭 **Structured Thinking**: Document and validate reasoning about complex operations
+  - 🧩 **AI-Optimized Reasoning**: Based on [Anthropic's research](https://www.anthropic.com/engineering/claude-think-tool) on improving LLM problem-solving
+  - 📋 **Task Planning**: Break down complex problems into manageable steps
+  - ✅ **Policy Compliance**: Verify solutions against project guidelines
+  - 🔄 **Tool Output Analysis**: Process results from other tools before taking next actions
+  - 📝 **Decision Documentation**: Maintain audit trails of architectural choices
 
 ## Building from Source
 

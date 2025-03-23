@@ -275,6 +275,58 @@ The think tool is particularly valuable when you want Claude to:
 4. Plan multi-step operations that require careful consideration
 5. Document reasoning about architectural decisions
 
+> 📚 **Learn More**: This implementation is based on Anthropic's research on improving Claude's performance with a dedicated thinking space. [Read their detailed blog post](https://www.anthropic.com/engineering/claude-think-tool) for more insights.
+
+**Best Practice Examples:**
+
+1. **Multi-step Task Planning**
+```
+Before implementing a new feature, use the think tool to:
+- List all required functionality
+- Identify affected components and files
+- Plan the implementation sequence
+- Consider potential edge cases
+- Outline test scenarios
+
+Example: When adding authentication, think through: user flow, security requirements, error states, and affected API endpoints.
+```
+
+2. **Policy Compliance Verification**
+```
+When evaluating solutions against project guidelines, use the think tool to:
+- List all relevant policies
+- Check each policy requirement against the solution
+- Identify any compliance gaps
+- Document justifications for approach
+- Flag areas needing further review
+
+Example: "Before implementing this database change, let me verify it meets our data security policies..."
+```
+
+3. **Tool Output Analysis**
+```
+After receiving complex tool outputs (like search results or code analysis), use the think tool to:
+- Summarize key findings
+- Identify patterns across results
+- Connect information from different sources
+- Determine next investigation steps
+- Validate assumptions based on collected data
+
+Example: "After searching the codebase for auth-related files, I've found these patterns..."
+```
+
+4. **Architectural Decision Documentation**
+```
+When making architectural choices, use the think tool to:
+- Document decision criteria
+- Compare alternative approaches
+- List pros and cons of each option
+- Justify the chosen solution
+- Note implications for future development
+
+Example: "Considering three approaches for the caching layer: in-memory, Redis, or database..."
+```
+
 **Features:**
 - Automatic thought categorization:
   - Refactoring: Code restructuring and improvements
