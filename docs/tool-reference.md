@@ -127,11 +127,16 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-se
 ### `analyze_packages`
 Analyzes NuGet packages in all projects found in the base directory.
 
-**Parameters:** None
+**Parameters:** 
+- `--include-preview` (optional): Whether to include preview/prerelease versions in update recommendations. Default is false (only stable versions).
 
 **Example:**
 ```bash
+# Default - show only stable version updates
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages
+
+# Include preview versions in update recommendations
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages --include-preview
 ```
 
 **Output includes:**
@@ -141,6 +146,14 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-pac
 - Recommendations for updates or removal
 - Deep transitive dependency analysis
 - Visual dependency graph representation with smart grouping
+- Preview/prerelease version information (when requested or available)
+
+**Status Indicators:**
+- ✅ Up to date: Current version is the latest stable version
+- 🔄 Update available: A newer stable version exists
+- 🔆 Preview update available: When preview versions are included
+- 🔅 Preview available: Indicates preview updates are available when not showing previews
+- ⚠️ Unused: Package is not referenced in code
 
 **Dependency Graph Features:**
 - Hierarchical tree visualization in ASCII-art format

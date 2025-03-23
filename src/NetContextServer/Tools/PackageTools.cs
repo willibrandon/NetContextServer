@@ -24,6 +24,7 @@ public static class PackageTools
     /// <summary>
     /// Analyzes NuGet packages in all projects found in the base directory.
     /// </summary>
+    /// <param name="includePreviewVersions">Whether to include preview/prerelease versions in update recommendations.</param>
     /// <returns>
     /// A JSON string containing analysis results for each project, including:
     /// - Package versions and available updates
@@ -38,7 +39,7 @@ public static class PackageTools
     /// </remarks>
     [McpTool("analyze_packages")]
     [Description("Analyzes NuGet packages in all projects found in the base directory, including deep transitive dependencies.")]
-    public static async Task<string> AnalyzePackagesAsync()
+    public static async Task<string> AnalyzePackagesAsync(bool includePreviewVersions = false)
     {
         try
         {
@@ -63,7 +64,7 @@ public static class PackageTools
                 
                 foreach (var package in packages)
                 {
-                    var analysis = await analyzer.AnalyzePackageAsync(package);
+                    var analysis = await analyzer.AnalyzePackageAsync(package, includePreviewVersions);
                     
                     // Add dependency graph visualization
                     if (analysis.TransitiveDependencies != null && analysis.TransitiveDependencies.Count > 0)

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace NetContextClient.Models;
 
 /// <summary>
@@ -8,12 +10,12 @@ public class PackageAnalysis
     /// <summary>
     /// Gets or sets the NuGet package identifier.
     /// </summary>
-    public string PackageId { get; set; } = "";
+    public string PackageId { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the current version of the package installed in the project.
     /// </summary>
-    public string Version { get; set; } = "";
+    public string Version { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets a value indicating whether the package is actively used in the project.
@@ -60,4 +62,19 @@ public class PackageAnalysis
     /// (e.g., test frameworks, build tools, analyzers) without direct code references.
     /// </summary>
     public bool ImplicitUsage { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the latest available version is a preview/prerelease version.
+    /// </summary>
+    public bool IsPreviewVersion { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a newer preview version is available (when not including preview versions in regular updates).
+    /// </summary>
+    public bool HasPreviewUpdate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the latest available preview version of the package, if a preview update is available.
+    /// </summary>
+    public string? LatestPreviewVersion { get; set; }
 } 

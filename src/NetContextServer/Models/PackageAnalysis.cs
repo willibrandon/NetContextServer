@@ -63,4 +63,19 @@ public class PackageAnalysis
     /// (e.g., test frameworks, build tools, analyzers) without direct code references.
     /// </summary>
     public bool ImplicitUsage { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the latest available version is a preview/prerelease version.
+    /// </summary>
+    public bool IsPreviewVersion { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a newer preview version is available (when not including preview versions in regular updates).
+    /// </summary>
+    public bool HasPreviewUpdate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the latest available preview version of the package, if a preview update is available.
+    /// </summary>
+    public string? LatestPreviewVersion { get; set; }
 }

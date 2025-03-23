@@ -143,14 +143,15 @@ public class PackageAnalyzerService(string? baseDirectory = null)
     /// Analyzes a package reference to determine its usage, available updates, and provides recommendations.
     /// </summary>
     /// <param name="package">The package reference to analyze.</param>
+    /// <param name="includePreviewVersions">Whether to include preview/prerelease versions in update recommendations.</param>
     /// <returns>A PackageAnalysis object containing the analysis results.</returns>
     /// <remarks>
     /// The analysis includes:
-    /// - Checking for available updates
+    /// - Checking for available updates (stable only by default)
     /// - Detecting package usage in source files
     /// - Generating recommendations based on usage and updates
     /// </remarks>
-    public async Task<PackageAnalysis> AnalyzePackageAsync(PackageReference package)
+    public async Task<PackageAnalysis> AnalyzePackageAsync(PackageReference package, bool includePreviewVersions = false)
     {
         var analysis = new PackageAnalysis
         {
@@ -172,15 +173,54 @@ public class PackageAnalyzerService(string? baseDirectory = null)
             }
 
             var resource = await NuGetRepository.GetResourceAsync<FindPackageByIdResource>();
-            var versions = await resource.GetAllVersionsAsync(package.Id, Cache, NullLogger.Instance, CancellationToken.None);
+            var allVersions = await resource.GetAllVersionsAsync(package.Id, Cache, NullLogger.Instance, CancellationToken.None);
             
-            if (versions.Any())
+            if (allVersions.Any())
             {
-                var latestVersion = versions.Max();
-                if (latestVersion != null)
+                // Filter versions based on includePreviewVersions parameter
+                var versions = includePreviewVersions 
+                    ? allVersions 
+                    : allVersions.Where(v => !v.IsPrerelease).ToList();
+                
+                if (versions.Any())
                 {
-                    analysis.HasUpdate = latestVersion > currentVersion;
-                    analysis.LatestVersion = latestVersion.ToString();
+                    var latestVersion = versions.Max();
+                    
+                    if (latestVersion != null && latestVersion > currentVersion)
+                    {
+                        analysis.HasUpdate = true;
+                        analysis.LatestVersion = latestVersion.ToString();
+                        analysis.IsPreviewVersion = latestVersion.IsPrerelease;
+                        
+                        // If no preview versions requested but we have newer preview versions, check for that too
+                        if (!includePreviewVersions && allVersions.Any(v => v.IsPrerelease && v > latestVersion))
+                        {
+                            var previewVersions = allVersions.Where(v => v.IsPrerelease).ToList();
+                            if (previewVersions.Any())
+                            {
+                                var latestPreviewVersion = previewVersions.Max();
+                                if (latestPreviewVersion != null)
+                                {
+                                    analysis.HasPreviewUpdate = true;
+                                    analysis.LatestPreviewVersion = latestPreviewVersion.ToString();
+                                }
+                            }
+                        }
+                    }
+                    else if (!includePreviewVersions)
+                    {
+                        // Check if there are preview updates available when not including them in regular updates
+                        var previewVersions = allVersions.Where(v => v.IsPrerelease && v > currentVersion).ToList();
+                        if (previewVersions.Any())
+                        {
+                            var latestPreviewVersion = previewVersions.Max();
+                            if (latestPreviewVersion != null)
+                            {
+                                analysis.HasPreviewUpdate = true;
+                                analysis.LatestPreviewVersion = latestPreviewVersion.ToString();
+                            }
+                        }
+                    }
                 }
             }
             
@@ -356,7 +396,16 @@ public class PackageAnalyzerService(string? baseDirectory = null)
                 }
                 else if (analysis.HasUpdate)
                 {
-                    analysis.RecommendedAction = $"Update available: {analysis.LatestVersion}";
+                    var updateMessage = $"Update available: {analysis.LatestVersion}";
+                    if (analysis.IsPreviewVersion)
+                    {
+                        updateMessage += " (Preview)";
+                    }
+                    analysis.RecommendedAction = updateMessage;
+                }
+                else if (analysis.HasPreviewUpdate && !analysis.HasUpdate)
+                {
+                    analysis.RecommendedAction = $"Preview update available: {analysis.LatestPreviewVersion}";
                 }
             }
         }

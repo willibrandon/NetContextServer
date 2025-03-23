@@ -158,7 +158,6 @@ namespace Test { public class TestClass {} }");
     }
 
     [Fact]
-    [Trait("Category", "AI_Generated")]
     public async Task AnalyzePackageAsync_CollectsTransitiveDependencies()
     {
         // Arrange
@@ -178,7 +177,6 @@ namespace Test { public class TestClass {} }");
     }
     
     [Fact]
-    [Trait("Category", "AI_Generated")]
     public async Task AnalyzePackageAsync_GeneratesDependencyGraph()
     {
         // Arrange
@@ -204,7 +202,6 @@ namespace Test { public class TestClass {} }");
     }
     
     [Fact]
-    [Trait("Category", "AI_Generated")]
     public async Task AnalyzePackageAsync_CorrectlyGroupsDependencies()
     {
         // Arrange
@@ -351,5 +348,77 @@ public class UnitTest1
         Assert.True(PackageAnalyzerService.IsTestProject(testProjectPath), "Project with Tests in name should be identified as test project");
         Assert.True(PackageAnalyzerService.IsTestProject(testContentProjectPath), "Project with xunit reference should be identified as test project");
         Assert.False(PackageAnalyzerService.IsTestProject(regularProjectPath), "Regular project should not be identified as test project");
+    }
+    
+    [Fact]
+    public async Task AnalyzePackageAsync_WithPreviewVersions_HandlesPreviewsCorrectly()
+    {
+        // Arrange
+        // Microsoft.Extensions.Hosting is known to have preview versions available
+        var package = new PackageReference
+        {
+            Id = "Microsoft.Extensions.Hosting",
+            Version = "8.0.0", // Using an older version to ensure we have both stable and preview updates
+            ProjectPath = _testProjectPath
+        };
+
+        // Create a file that uses the package to ensure it's not marked as unused
+        var csFilePath = Path.Combine(_testProjectDir, "TestHosting.cs");
+        await File.WriteAllTextAsync(csFilePath, @"
+using Microsoft.Extensions.Hosting;
+namespace Test { 
+    public class TestClass {
+        public void TestMethod() {
+            var host = Host.CreateDefaultBuilder();
+        }
+    } 
+}");
+
+        // Act - First without including preview versions
+        var analysisWithoutPreviews = await _service.AnalyzePackageAsync(package, includePreviewVersions: false);
+        
+        // Act - Then with including preview versions
+        var analysisWithPreviews = await _service.AnalyzePackageAsync(package, includePreviewVersions: true);
+
+        // Assert - Basic properties
+        Assert.True(analysisWithoutPreviews.IsUsed, "Package should be marked as used");
+        Assert.NotNull(analysisWithoutPreviews.RecommendedAction);
+        Assert.NotNull(analysisWithPreviews.RecommendedAction);
+        
+        // Output details for diagnostics
+        Console.WriteLine($"Without previews - HasUpdate: {analysisWithoutPreviews.HasUpdate}, HasPreviewUpdate: {analysisWithoutPreviews.HasPreviewUpdate}");
+        Console.WriteLine($"Without previews - LatestVersion: {analysisWithoutPreviews.LatestVersion}, LatestPreviewVersion: {analysisWithoutPreviews.LatestPreviewVersion}");
+        Console.WriteLine($"Without previews - RecommendedAction: {analysisWithoutPreviews.RecommendedAction}");
+        
+        Console.WriteLine($"With previews - HasUpdate: {analysisWithPreviews.HasUpdate}, IsPreviewVersion: {analysisWithPreviews.IsPreviewVersion}");
+        Console.WriteLine($"With previews - LatestVersion: {analysisWithPreviews.LatestVersion}");
+        Console.WriteLine($"With previews - RecommendedAction: {analysisWithPreviews.RecommendedAction}");
+        
+        // Verify different behaviors based on includePreviewVersions setting
+        Assert.True(analysisWithoutPreviews.HasUpdate || analysisWithoutPreviews.HasPreviewUpdate, 
+            "Package should have either a stable update or preview update available");
+            
+        // Test the flag properties in both analyses
+        if (analysisWithoutPreviews.HasPreviewUpdate)
+        {
+            Assert.NotNull(analysisWithoutPreviews.LatestPreviewVersion);
+            
+            // Preview update might be shown in recommended action if there's no stable update
+            if (!analysisWithoutPreviews.HasUpdate)
+            {
+                Assert.Contains("Preview", analysisWithoutPreviews.RecommendedAction);
+            }
+        }
+        
+        if (analysisWithPreviews.HasUpdate)
+        {
+            Assert.NotNull(analysisWithPreviews.LatestVersion);
+            
+            // If the latest version with previews is a preview version
+            if (analysisWithPreviews.IsPreviewVersion) 
+            {
+                Assert.Contains("Preview", analysisWithPreviews.RecommendedAction);
+            }
+        }
     }
 }

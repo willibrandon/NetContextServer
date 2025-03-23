@@ -594,11 +594,13 @@ class Program
 
         // Analyze Packages command
         var analyzePackagesCommand = new Command("analyze-packages", "Analyze NuGet packages in all projects in the base directory");
-        analyzePackagesCommand.SetHandler(async () =>
+        var includePreviewOption = new Option<bool>("--include-preview", "Include preview/prerelease versions in update recommendations") { IsRequired = false };
+        analyzePackagesCommand.AddOption(includePreviewOption);
+        analyzePackagesCommand.SetHandler(async (bool includePreview) =>
         {
             try
             {
-                var result = await client.CallToolAsync("analyze_packages", []);
+                var result = await client.CallToolAsync("analyze_packages", new() { ["includePreviewVersions"] = includePreview });
                 var jsonText = result.Content.First(c => c.Type == "text").Text;
                 
                 // Try to deserialize to our expected type
@@ -654,11 +656,28 @@ class Program
                             
                             foreach (var package in projectAnalysis.Packages)
                             {
+                                // Update status symbol to indicate preview versions
                                 var statusSymbol = package.HasSecurityIssues ? "🔴" : 
-                                                (package.HasUpdate ? "🔄" : 
-                                                (!package.IsUsed ? "⚠️" : "✅"));
+                                                (package.HasUpdate ? (package.IsPreviewVersion ? "🔆" : "🔄") : 
+                                                (package.HasPreviewUpdate ? "🔅" :
+                                                (!package.IsUsed ? "⚠️" : "✅")));
                                 
-                                await Console.Out.WriteLineAsync($"  - {statusSymbol} {package.PackageId} ({package.Version}{(package.HasUpdate ? $" → {package.LatestVersion}" : "")})");
+                                // Add version information, handling different states
+                                string versionInfo = package.Version;
+                                if (package.HasUpdate)
+                                {
+                                    versionInfo += $" → {package.LatestVersion}";
+                                    if (package.IsPreviewVersion)
+                                    {
+                                        versionInfo += " (Preview)";
+                                    }
+                                }
+                                else if (package.HasPreviewUpdate)
+                                {
+                                    versionInfo += $" → {package.LatestPreviewVersion} (Preview available)";
+                                }
+                                
+                                await Console.Out.WriteLineAsync($"  - {statusSymbol} {package.PackageId} ({versionInfo})");
                                 
                                 if (!string.IsNullOrEmpty(package.RecommendedAction))
                                 {
@@ -730,7 +749,7 @@ class Program
             {
                 await Console.Error.WriteLineAsync($"Error analyzing packages: {ex.Message}");
             }
-        });
+        }, includePreviewOption);
 
         // Think command
         var thinkCommand = new Command("think", "Process a thought without making any state changes");
