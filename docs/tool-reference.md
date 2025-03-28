@@ -246,6 +246,17 @@ Removes specific patterns from the ignore list.
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- remove-ignore-patterns --patterns "*.generated.cs" "bin/*"
 ```
 
+## Default Ignore Patterns
+
+The following patterns are ignored by default to protect sensitive information:
+- `*.env` - Environment files
+- `appsettings.*.json` - Application settings
+- `*.pfx` - Certificate files
+- `*.key` - Key files
+- `*.pem` - PEM files
+- `*password*` - Files containing "password" in the name
+- `*secret*` - Files containing "secret" in the name
+
 ## General Tools
 
 ### `hello`
@@ -403,27 +414,6 @@ The tool returns error responses in the following cases:
 }
 ```
 
-## Default Ignore Patterns
-
-The following patterns are ignored by default to protect sensitive information:
-- `*.env` - Environment files
-- `appsettings.*.json` - Application settings
-- `*.pfx` - Certificate files
-- `*.key` - Key files
-- `*.pem` - PEM files
-- `*password*` - Files containing "password" in the name
-- `*secret*` - Files containing "secret" in the name
-
-## Error Handling
-
-The server provides clear error messages for common scenarios:
-- Directory not found
-- Access denied (outside base directory)
-- Invalid patterns
-- File size limits exceeded
-- Restricted file types
-- Missing environment variables for semantic search
-
 ## Coverage Analysis Tools
 
 ### `coverage-analysis`
@@ -478,3 +468,13 @@ Returns a summary object containing:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-summary --report-path "TestResults/coverage.json"
 ``` 
+
+## Error Handling
+
+The server provides clear error messages for common scenarios:
+- Directory not found
+- Access denied (outside base directory)
+- Invalid patterns
+- File size limits exceeded
+- Restricted file types
+- Missing environment variables for semantic search
