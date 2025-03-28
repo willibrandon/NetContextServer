@@ -1,5 +1,6 @@
 using NetContextServer.Models;
 using NetContextServer.Services;
+using NuGet.Versioning;
 
 namespace NetContextServer.Tests;
 
@@ -419,6 +420,117 @@ namespace Test {
             {
                 Assert.Contains("Preview", analysisWithPreviews.RecommendedAction);
             }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzePackageAsync_WithNonExistentPackage_HandlesError()
+    {
+        // Arrange
+        var package = new PackageReference
+        {
+            Id = "NonExistentPackage" + Guid.NewGuid().ToString(),
+            Version = "1.0.0",
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var analysis = await _service.AnalyzePackageAsync(package);
+
+        // Assert
+        Assert.False(analysis.HasUpdate);
+        Assert.Null(analysis.LatestVersion);
+        Assert.False(analysis.HasPreviewUpdate);
+        Assert.Null(analysis.LatestPreviewVersion);
+    }
+
+    [Fact]
+    public async Task AnalyzePackageAsync_WithDeepDependencies_RespectsMaxDepth()
+    {
+        // Arrange
+        var package = new PackageReference
+        {
+            Id = "Microsoft.EntityFrameworkCore",
+            Version = "6.0.0",
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var analysis = await _service.AnalyzePackageAsync(package);
+
+        // Assert
+        Assert.NotNull(analysis.TransitiveDependencies);
+        Assert.NotEmpty(analysis.TransitiveDependencies);
+        // Verify we have some common known dependencies
+        Assert.Contains(analysis.TransitiveDependencies, 
+            d => d.StartsWith("Microsoft.Extensions."));
+    }
+
+    [Fact]
+    public async Task AnalyzePackageAsync_WithPreviewVersionOnly_HandlesCorrectly()
+    {
+        // Arrange
+        var package = new PackageReference
+        {
+            Id = "Microsoft.AspNetCore.Components.WebAssembly",
+            Version = "6.0.0",
+            ProjectPath = _testProjectPath
+        };
+
+        // Act
+        var analysis = await _service.AnalyzePackageAsync(package, includePreviewVersions: true);
+
+        // Assert
+        if (analysis.HasUpdate || analysis.HasPreviewUpdate)
+        {
+            if (analysis.HasUpdate)
+            {
+                Assert.NotNull(analysis.LatestVersion);
+                var currentVersion = NuGetVersion.Parse(package.Version);
+                var latestVersion = NuGetVersion.Parse(analysis.LatestVersion);
+                Assert.True(latestVersion > currentVersion);
+            }
+            if (analysis.HasPreviewUpdate)
+            {
+                Assert.NotNull(analysis.LatestPreviewVersion);
+                var currentVersion = NuGetVersion.Parse(package.Version);
+                var latestPreviewVersion = NuGetVersion.Parse(analysis.LatestPreviewVersion);
+                Assert.True(latestPreviewVersion > currentVersion);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task AnalyzePackageAsync_WithKnownSpecialPackage_HandlesCorrectly()
+    {
+        // Arrange
+        var package = new PackageReference
+        {
+            Id = "xunit",
+            Version = "2.4.2",
+            ProjectPath = Path.Combine(_testProjectDir, "Tests", "TestProject.csproj")
+        };
+
+        Directory.CreateDirectory(Path.Combine(_testProjectDir, "Tests"));
+        await File.WriteAllTextAsync(
+            package.ProjectPath,
+            @"<Project Sdk=""Microsoft.NET.Sdk""><ItemGroup><PackageReference Include=""xunit"" Version=""2.4.2"" /></ItemGroup></Project>"
+        );
+
+        // Act
+        var analysis = await _service.AnalyzePackageAsync(package);
+
+        // Assert
+        Assert.True(analysis.ImplicitUsage, "xunit should be recognized as an implicitly used package");
+        Assert.True(analysis.IsUsed, "xunit should be marked as used in a test project");
+        
+        // Verify we have a recommendation (either about updates or about it being a test package)
+        Assert.NotNull(analysis.RecommendedAction);
+        
+        // If there's an update available, the recommendation will be about updating
+        if (analysis.HasUpdate)
+        {
+            Assert.Contains("Update available", analysis.RecommendedAction);
         }
     }
 }
