@@ -4,7 +4,7 @@ namespace NetContextServer.Services;
 /// Provides validation and path manipulation services for file system operations.
 /// Ensures file access is restricted to the designated base directory for security.
 /// </summary>
-internal static class FileValidationService
+public static class FileValidationService
 {
     /// <summary>
     /// Gets or sets the base directory for all file operations.
