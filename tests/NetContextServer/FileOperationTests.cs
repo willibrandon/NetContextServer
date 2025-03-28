@@ -33,8 +33,8 @@ public class FileOperationTests : IAsyncLifetime
         try
         {
             // Reset the base directory
-            await _client.CallToolAsync("set_base_directory", 
-                new Dictionary<string, object> { ["directory"] = Directory.GetCurrentDirectory() });
+            var args = new Dictionary<string, object?> { ["directory"] = Directory.GetCurrentDirectory() };
+            await _client.CallToolAsync("set_base_directory", args);
         }
         catch
         {
@@ -58,13 +58,13 @@ public class FileOperationTests : IAsyncLifetime
     public async Task ListFiles_WithValidPath_ReturnsJsonArray()
     {
         // Arrange: Set base directory to our test directory
-        var setResult = await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+        var setArgs = new Dictionary<string, object?> { ["directory"] = _testDir };
+        var setResult = await _client.CallToolAsync("set_base_directory", setArgs);
         Assert.NotNull(setResult);
 
         // Act: List files in the directory
-        var result = await _client.CallToolAsync("list_files", 
-            new Dictionary<string, object> { ["projectPath"] = _testDir });
+        var args = new Dictionary<string, object?> { ["projectPath"] = _testDir };
+        var result = await _client.CallToolAsync("list_files", args);
         
         // Assert: Verify response structure and content
         Assert.NotNull(result);
@@ -85,8 +85,8 @@ public class FileOperationTests : IAsyncLifetime
         var invalidPath = Path.Combine(_testDir, "NonExistent");
 
         // Act
-        var result = await _client.CallToolAsync("list_files", 
-            new Dictionary<string, object> { ["projectPath"] = invalidPath });
+        var args = new Dictionary<string, object?> { ["projectPath"] = invalidPath };
+        var result = await _client.CallToolAsync("list_files", args);
         
         // Assert
         Assert.NotNull(result);
@@ -105,12 +105,12 @@ public class FileOperationTests : IAsyncLifetime
         // Arrange
         var content = "test content";
         await File.WriteAllTextAsync(_testCsFilePath, content);
-        await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+        var setArgs = new Dictionary<string, object?> { ["directory"] = _testDir };
+        await _client.CallToolAsync("set_base_directory", setArgs);
 
         // Act
-        var result = await _client.CallToolAsync("open_file", 
-            new Dictionary<string, object> { ["filePath"] = _testCsFilePath });
+        var args = new Dictionary<string, object?> { ["filePath"] = _testCsFilePath };
+        var result = await _client.CallToolAsync("open_file", args);
         
         // Assert
         Assert.NotNull(result);
@@ -124,12 +124,12 @@ public class FileOperationTests : IAsyncLifetime
     {
         // Arrange
         var invalidPath = Path.Combine(_testDir, "NonExistent.cs");
-        await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+        var setArgs = new Dictionary<string, object?> { ["directory"] = _testDir };
+        await _client.CallToolAsync("set_base_directory", setArgs);
 
         // Act
-        var result = await _client.CallToolAsync("open_file", 
-            new Dictionary<string, object> { ["filePath"] = invalidPath });
+        var args = new Dictionary<string, object?> { ["filePath"] = invalidPath };
+        var result = await _client.CallToolAsync("open_file", args);
         
         // Assert
         Assert.NotNull(result);
@@ -145,12 +145,12 @@ public class FileOperationTests : IAsyncLifetime
         // Arrange
         var largeContent = new string('x', 150_000);
         await File.WriteAllTextAsync(_testCsFilePath, largeContent);
-        await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+        var setArgs = new Dictionary<string, object?> { ["directory"] = _testDir };
+        await _client.CallToolAsync("set_base_directory", setArgs);
 
         // Act
-        var result = await _client.CallToolAsync("open_file", 
-            new Dictionary<string, object> { ["filePath"] = _testCsFilePath });
+        var args = new Dictionary<string, object?> { ["filePath"] = _testCsFilePath };
+        var result = await _client.CallToolAsync("open_file", args);
         
         // Assert
         Assert.NotNull(result);
@@ -168,12 +168,12 @@ public class FileOperationTests : IAsyncLifetime
         await File.WriteAllTextAsync(Path.Combine(_testDir, "Test.cs"), "");
         await File.WriteAllTextAsync(Path.Combine(_testDir, "Test.vb"), "");
         await File.WriteAllTextAsync(Path.Combine(_testDir, "Test.fs"), "");
-        await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+        var setArgs = new Dictionary<string, object?> { ["directory"] = _testDir };
+        await _client.CallToolAsync("set_base_directory", setArgs);
 
         // Act
-        var result = await _client.CallToolAsync("list_source_files", 
-            new Dictionary<string, object> { ["projectDir"] = _testDir });
+        var args = new Dictionary<string, object?> { ["projectDir"] = _testDir };
+        var result = await _client.CallToolAsync("list_source_files", args);
         
         // Assert
         Assert.NotNull(result);
@@ -192,16 +192,14 @@ public class FileOperationTests : IAsyncLifetime
     public async Task ListSourceFiles_WithInvalidPath_ReturnsError()
     {
         var invalidPath = Path.Combine(_testDir, "NonExistent");
-        var result = await _client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", invalidPath } });
+        var args = new Dictionary<string, object?> { ["projectDir"] = invalidPath };
+        var result = await _client.CallToolAsync("list_source_files", args);
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
         var content = result.Content[0];
         Assert.NotNull(content);
         Assert.NotNull(content.Text);
-        var error = content.Text != null ? JsonSerializer.Deserialize<string[]>(content.Text) : null;
-
-        Assert.NotNull(error);
-        Assert.Contains(error, e => e.StartsWith("Error:"));
+        Assert.StartsWith("Error:", content.Text, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -215,12 +213,12 @@ public class FileOperationTests : IAsyncLifetime
         await File.WriteAllTextAsync(testCsPath, "");
         await File.WriteAllTextAsync(envPath, "");
         await File.WriteAllTextAsync(configPath, "");
-        await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+        var setArgs = new Dictionary<string, object?> { ["directory"] = _testDir };
+        await _client.CallToolAsync("set_base_directory", setArgs);
 
         // Act
-        var result = await _client.CallToolAsync("list_files", 
-            new Dictionary<string, object> { ["projectPath"] = _testDir });
+        var args = new Dictionary<string, object?> { ["projectPath"] = _testDir };
+        var result = await _client.CallToolAsync("list_files", args);
         
         // Assert
         Assert.NotNull(result);
@@ -244,8 +242,8 @@ public class FileOperationTests : IAsyncLifetime
         try
         {
             // Act
-            var result = await _client.CallToolAsync("open_file", 
-                new Dictionary<string, object> { ["filePath"] = outsidePath });
+            var args = new Dictionary<string, object?> { ["filePath"] = outsidePath };
+            var result = await _client.CallToolAsync("open_file", args);
             
             // Assert
             Assert.NotNull(result);
@@ -270,12 +268,12 @@ public class FileOperationTests : IAsyncLifetime
         // Arrange
         var secretFile = Path.Combine(_testDir, "secrets.env");
         await File.WriteAllTextAsync(secretFile, "secret content");
-        await _client.CallToolAsync("set_base_directory",
-            new Dictionary<string, object> { ["directory"] = _testDir });
+        var setArgs = new Dictionary<string, object?> { ["directory"] = _testDir };
+        await _client.CallToolAsync("set_base_directory", setArgs);
 
         // Act
-        var result = await _client.CallToolAsync("open_file",
-            new Dictionary<string, object> { ["filePath"] = secretFile });
+        var args = new Dictionary<string, object?> { ["filePath"] = secretFile };
+        var result = await _client.CallToolAsync("open_file", args);
 
         // Assert
         Assert.NotNull(result);
@@ -307,8 +305,12 @@ public class FileOperationTests : IAsyncLifetime
             File.WriteAllText(Path.Combine(_testDir, file.Key), file.Value);
         }
 
-        await _client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
-        var result = await _client.CallToolAsync("list_files", new Dictionary<string, object> { { "projectPath", _testDir } });
+        var setArgs = new Dictionary<string, object?> { ["directory"] = _testDir };
+        await _client.CallToolAsync("set_base_directory", setArgs);
+        
+        var args = new Dictionary<string, object?> { ["projectPath"] = _testDir };
+        var result = await _client.CallToolAsync("list_files", args);
+        
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
         var content = result.Content[0];
@@ -355,8 +357,12 @@ public class FileOperationTests : IAsyncLifetime
             File.WriteAllText(Path.Combine(projectDir, file.Key), file.Value);
         }
 
-        await _client.CallToolAsync("set_base_directory", new Dictionary<string, object> { { "directory", _testDir } });
-        var result = await _client.CallToolAsync("list_source_files", new Dictionary<string, object> { { "projectDir", projectDir } });
+        var setArgs = new Dictionary<string, object?> { ["directory"] = _testDir };
+        await _client.CallToolAsync("set_base_directory", setArgs);
+        
+        var args = new Dictionary<string, object?> { ["projectDir"] = projectDir };
+        var result = await _client.CallToolAsync("list_source_files", args);
+        
         Assert.NotNull(result);
         Assert.NotEmpty(result.Content);
         var content = result.Content[0];

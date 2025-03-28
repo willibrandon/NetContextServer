@@ -9,7 +9,7 @@ namespace NetContextServer.Tools;
 /// <summary>
 /// Provides MCP tools for analyzing NuGet packages in .NET projects.
 /// </summary>
-[McpToolType]
+[McpServerToolType]
 public static class PackageTools
 {
     /// <summary>
@@ -37,7 +37,7 @@ public static class PackageTools
     /// The analysis includes checking for updates, detecting package usage, providing recommendations,
     /// and visualizing transitive dependency graphs.
     /// </remarks>
-    [McpTool("analyze_packages")]
+    [McpServerTool("analyze_packages")]
     [Description("Analyzes NuGet packages in all projects found in the base directory, including deep transitive dependencies.")]
     public static async Task<string> AnalyzePackagesAsync(bool includePreviewVersions = false)
     {

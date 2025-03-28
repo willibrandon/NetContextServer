@@ -1,5 +1,4 @@
 using ModelContextProtocol.Client;
-using ModelContextProtocol.Protocol.Types;
 using System.Text.Json;
 
 namespace NetContextServer.Tests;
@@ -27,11 +26,7 @@ public class BasicServerTests : IAsyncLifetime
     public async Task ListTools_ReturnsValidToolList()
     {
         // Act
-        var tools = new List<Tool>();
-        await foreach (var tool in _client.ListToolsAsync())
-        {
-            tools.Add(tool);
-        }
+        var tools = await _client.ListToolsAsync();
 
         // Assert
         Assert.NotNull(tools);
@@ -50,7 +45,7 @@ public class BasicServerTests : IAsyncLifetime
     public async Task Hello_ReturnsSuccess()
     {
         // Act
-        var result = await _client.CallToolAsync("hello", []);
+        var result = await _client.CallToolAsync("hello", new Dictionary<string, object?>());
 
         // Assert
         Assert.NotNull(result);
@@ -66,7 +61,7 @@ public class BasicServerTests : IAsyncLifetime
     {
         // Act & Assert
         var ex = await Assert.ThrowsAsync<McpClientException>(
-            () => _client.CallToolAsync("invalid_tool", []));
+            () => _client.CallToolAsync("invalid_tool", new Dictionary<string, object?>()));
         Assert.Contains("Unknown tool", ex.Message);
     }
 
@@ -74,7 +69,7 @@ public class BasicServerTests : IAsyncLifetime
     public async Task CallToolWithInvalidParameters_ReturnsError()
     {
         // Act
-        var result = await _client.CallToolAsync("list_files", []);
+        var result = await _client.CallToolAsync("list_files", new Dictionary<string, object?>());
 
         // Assert
         Assert.NotNull(result);
@@ -83,10 +78,20 @@ public class BasicServerTests : IAsyncLifetime
         Assert.NotNull(content.Text);
 
         Console.WriteLine($"Raw response: {content.Text}");
-        var response = JsonSerializer.Deserialize<string[]>(content.Text);
-        Assert.NotNull(response);
-        Assert.NotEmpty(response);
-        Assert.StartsWith("Error:", response[0]);
+        
+        // Try to parse as JSON array first, if that fails, check plain text
+        try
+        {
+            var response = JsonSerializer.Deserialize<string[]>(content.Text);
+            Assert.NotNull(response);
+            Assert.NotEmpty(response);
+            Assert.StartsWith("Error:", response[0]);
+        }
+        catch (JsonException)
+        {
+            // If not JSON, it should be a plain text error message
+            Assert.StartsWith("Missing required parameter", content.Text);
+        }
     }
 
     private class ToolInfo

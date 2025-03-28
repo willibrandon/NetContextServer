@@ -103,7 +103,7 @@ public class NetContextServerFixture : IAsyncLifetime, IDisposable
                 Id = "netcontext-test",
                 Name = "NetContextServer",
                 TransportType = TransportTypes.StdIo,
-                TransportOptions = new()
+                TransportOptions = new Dictionary<string, string>
                 {
                     ["command"] = startInfo.FileName,
                     ["arguments"] = startInfo.Arguments
@@ -118,7 +118,7 @@ public class NetContextServerFixture : IAsyncLifetime, IDisposable
                 // Verify connection with a hello request
                 using var helloCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 var helloResult = await Client.CallToolAsync("hello", 
-                    [], helloCts.Token);
+                    new Dictionary<string, object?>(), helloCts.Token);
                 
                 if (helloResult.IsError)
                 {

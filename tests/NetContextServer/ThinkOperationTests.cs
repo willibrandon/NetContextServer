@@ -1,4 +1,5 @@
 using ModelContextProtocol.Client;
+using System.Collections.Generic;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -41,7 +42,7 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
 
         // Act
         var result = await _client.CallToolAsync("think", 
-            new Dictionary<string, object> { ["thought"] = testThought });
+            new Dictionary<string, object?> { ["thought"] = testThought });
 
         // Assert
         Assert.NotNull(result);
@@ -64,7 +65,7 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
 
         // Act
         var result = await _client.CallToolAsync("think", 
-            new Dictionary<string, object> { ["thought"] = emptyThought });
+            new Dictionary<string, object?> { ["thought"] = emptyThought });
 
         // Assert
         Assert.NotNull(result);
@@ -86,7 +87,7 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
 
         // Act
         var result = await _client.CallToolAsync("think", 
-            new Dictionary<string, object> { ["thought"] = longThought });
+            new Dictionary<string, object?> { ["thought"] = longThought });
 
         // Assert
         Assert.NotNull(result);
@@ -109,7 +110,7 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
 
         // Act
         var result = await _client.CallToolAsync("think", 
-            new Dictionary<string, object> { ["thought"] = thoughtWithSpecialChars });
+            new Dictionary<string, object?> { ["thought"] = thoughtWithSpecialChars });
 
         // Assert
         Assert.NotNull(result);
@@ -128,7 +129,7 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
     public async Task Think_WithoutThoughtParameter_ReturnsError()
     {
         // Act
-        var result = await _client.CallToolAsync("think", []);
+        var result = await _client.CallToolAsync("think", new Dictionary<string, object?>());
 
         // Assert
         Assert.NotNull(result);
@@ -136,10 +137,19 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
         Assert.NotNull(content);
         Assert.NotNull(content.Text);
 
-        var response = JsonSerializer.Deserialize<ThinkResponse>(content.Text, DefaultJsonOptions);
-        Assert.NotNull(response);
-        Assert.NotNull(response.Error);
-        Assert.Contains("Missing required parameter", response.Error);
+        // Try to parse as JSON first, if that fails, check plain text
+        try
+        {
+            var response = JsonSerializer.Deserialize<ThinkResponse>(content.Text, DefaultJsonOptions);
+            Assert.NotNull(response);
+            Assert.NotNull(response.Error);
+            Assert.Contains("Missing required parameter", response.Error);
+        }
+        catch (JsonException)
+        {
+            // If not JSON, it should be a plain text error message
+            Assert.StartsWith("Missing required parameter", content.Text);
+        }
     }
 
     [Fact]
@@ -150,7 +160,7 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
 
         // Act
         var result = await _client.CallToolAsync("think", 
-            new Dictionary<string, object> { ["thought"] = oversizedThought });
+            new Dictionary<string, object?> { ["thought"] = oversizedThought });
 
         // Assert
         Assert.NotNull(result);
@@ -173,7 +183,7 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
 
         // Act
         var result = await _client.CallToolAsync("think", 
-            new Dictionary<string, object> { ["thought"] = harmfulThought });
+            new Dictionary<string, object?> { ["thought"] = harmfulThought });
 
         // Assert
         Assert.NotNull(result);
@@ -190,14 +200,12 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
     [Fact]
     public async Task Think_WithUnicodeAndEmoji_HandlesSpecialCharactersCorrectly()
     {
-        // Arrange - Use only emoji that work well with the MCP protocol
-        // Note: While Chinese characters may display as question marks in some contexts,
-        // common emoji are correctly preserved in the JSON responses
+        // Arrange
         var unicodeThought = "Testing emoji: 🔍 🚀 👍";
 
         // Act
         var result = await _client.CallToolAsync("think", 
-            new Dictionary<string, object> { ["thought"] = unicodeThought });
+            new Dictionary<string, object?> { ["thought"] = unicodeThought });
 
         // Assert
         Assert.NotNull(result);
@@ -207,15 +215,10 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
 
         var response = JsonSerializer.Deserialize<ThinkResponse>(content.Text, DefaultJsonOptions);
         Assert.NotNull(response);
-        
-        // Verify the thought is correctly returned
         Assert.Equal(unicodeThought, response.Thought);
-        
-        // Verify at least some emoji characters are present
         Assert.Contains("🔍", response.Thought);
         Assert.Contains("🚀", response.Thought);
         Assert.Contains("👍", response.Thought);
-        
         Assert.NotEmpty(response.Message);
         Assert.Null(response.Error);
     }
@@ -231,7 +234,7 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
     {
         // Act
         var result = await _client.CallToolAsync("think", 
-            new Dictionary<string, object> { ["thought"] = thought });
+            new Dictionary<string, object?> { ["thought"] = thought });
 
         // Assert
         Assert.NotNull(result);
@@ -253,7 +256,7 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
 
         // Act
         var result = await _client.CallToolAsync("think", 
-            new Dictionary<string, object> { ["thought"] = testThought });
+            new Dictionary<string, object?> { ["thought"] = testThought });
 
         // Assert
         Assert.NotNull(result);
@@ -264,10 +267,8 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
         var response = JsonSerializer.Deserialize<ThinkResponse>(content.Text, DefaultJsonOptions);
         Assert.NotNull(response);
         Assert.NotNull(response.Timestamp);
-        
-        // Verify ISO 8601 format
         Assert.True(DateTime.TryParse(response.Timestamp, out _));
-        Assert.Contains("T", response.Timestamp); // ISO 8601 separator
-        Assert.Contains(":", response.Timestamp); // Time separator
+        Assert.Contains("T", response.Timestamp);
+        Assert.Contains(":", response.Timestamp);
     }
 }

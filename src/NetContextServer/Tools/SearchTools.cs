@@ -8,7 +8,7 @@ namespace NetContextServer.Tools;
 /// <summary>
 /// Provides MCP tools for searching code within the codebase using both text-based and semantic search capabilities.
 /// </summary>
-[McpToolType]
+[McpServerToolType]
 public static class SearchTools
 {
     /// <summary>
@@ -24,7 +24,7 @@ public static class SearchTools
     /// </summary>
     /// <param name="searchText">The exact text string to search for in the codebase.</param>
     /// <returns>A JSON string containing an array of matches with file paths and line numbers.</returns>
-    [McpTool("search_code")]
+    [McpServerTool("search_code")]
     [Description("Performs a text-based search across all code files for the specified text.")]
     public static string SearchCode(
         [Description("The exact text string to search for in the codebase")]
@@ -41,7 +41,7 @@ public static class SearchTools
     /// This method uses AI embeddings to understand the semantic meaning of the query and find relevant code,
     /// even if it doesn't contain the exact words used in the query.
     /// </remarks>
-    [McpTool("semantic_search")]
+    [McpServerTool("semantic_search")]
     [Description("Performs a semantic similarity search across the codebase using AI.")]
     public static async Task<string> SemanticSearchAsync(
         [Description("Natural language description of the code you're looking for")]

@@ -1,4 +1,5 @@
 using ModelContextProtocol.Client;
+using System.Collections.Generic;
 using System.Text.Json;
 
 namespace NetContextServer.Tests;
@@ -25,7 +26,7 @@ public class BaseDirectoryTests(NetContextServerFixture fixture) : IAsyncLifetim
         {
             // Reset the base directory
             await _client.CallToolAsync("set_base_directory", 
-                new Dictionary<string, object> { ["directory"] = Directory.GetCurrentDirectory() });
+                new Dictionary<string, object?> { ["directory"] = Directory.GetCurrentDirectory() });
         }
         catch
         {
@@ -54,7 +55,7 @@ public class BaseDirectoryTests(NetContextServerFixture fixture) : IAsyncLifetim
 
         // Act
         var result = await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = tempDir });
+            new Dictionary<string, object?> { ["directory"] = tempDir });
 
         // Assert
         Assert.NotNull(result);
@@ -76,7 +77,7 @@ public class BaseDirectoryTests(NetContextServerFixture fixture) : IAsyncLifetim
 
         // Act
         var result = await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = invalidPath });
+            new Dictionary<string, object?> { ["directory"] = invalidPath });
 
         // Assert
         Assert.NotNull(result);
@@ -99,11 +100,11 @@ public class BaseDirectoryTests(NetContextServerFixture fixture) : IAsyncLifetim
 
         // Set the base directory first
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = tempDir });
+            new Dictionary<string, object?> { ["directory"] = tempDir });
 
         // Act
         var result = await _client.CallToolAsync("get_base_directory", 
-            []);
+            new Dictionary<string, object?>());
 
         // Assert
         Assert.NotNull(result);
@@ -129,14 +130,14 @@ public class BaseDirectoryTests(NetContextServerFixture fixture) : IAsyncLifetim
 
         // Set the base directory
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = tempDir });
+            new Dictionary<string, object?> { ["directory"] = tempDir });
 
         // Delete the directory
         Directory.Delete(tempDir);
 
         // Act
         var result = await _client.CallToolAsync("get_base_directory", 
-            []);
+            new Dictionary<string, object?>());
 
         // Assert
         Assert.NotNull(result);

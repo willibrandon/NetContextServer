@@ -1,4 +1,5 @@
 using ModelContextProtocol.Client;
+using System.Collections.Generic;
 using System.Text.Json;
 using Xunit;
 
@@ -47,7 +48,7 @@ public class ProjectOperationTests : IAsyncLifetime
         {
             // Reset the base directory
             await _client.CallToolAsync("set_base_directory", 
-                new Dictionary<string, object> { ["directory"] = Directory.GetCurrentDirectory() });
+                new Dictionary<string, object?> { ["directory"] = Directory.GetCurrentDirectory() });
         }
         catch
         {
@@ -72,11 +73,11 @@ public class ProjectOperationTests : IAsyncLifetime
     {
         // Arrange
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+            new Dictionary<string, object?> { ["directory"] = _testDir });
 
         // Act
         var result = await _client.CallToolAsync("list_projects", 
-            []);
+            new Dictionary<string, object?>());
 
         // Assert
         Assert.NotNull(result);
@@ -96,11 +97,11 @@ public class ProjectOperationTests : IAsyncLifetime
         var solutionPath = Path.Combine(_testDir, "Test.sln");
         await File.WriteAllTextAsync(solutionPath, "");
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+            new Dictionary<string, object?> { ["directory"] = _testDir });
 
         // Act
         var result = await _client.CallToolAsync("list_solutions", 
-            []);
+            new Dictionary<string, object?>());
 
         // Assert
         Assert.NotNull(result);
@@ -118,11 +119,11 @@ public class ProjectOperationTests : IAsyncLifetime
     {
         // Arrange
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+            new Dictionary<string, object?> { ["directory"] = _testDir });
 
         // Act
         var result = await _client.CallToolAsync("list_projects_in_dir", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+            new Dictionary<string, object?> { ["directory"] = _testDir });
 
         // Assert
         Assert.NotNull(result);
@@ -143,7 +144,7 @@ public class ProjectOperationTests : IAsyncLifetime
 
         // Act
         var result = await _client.CallToolAsync("list_projects_in_dir", 
-            new Dictionary<string, object> { ["directory"] = invalidPath });
+            new Dictionary<string, object?> { ["directory"] = invalidPath });
 
         // Assert
         Assert.NotNull(result);

@@ -10,7 +10,7 @@ namespace NetContextServer.Tools;
 /// Provides a tool for structured thinking during complex operations, allowing the model
 /// to reason about its actions without making state changes.
 /// </summary>
-[McpToolType]
+[McpServerToolType]
 public static partial class ThinkTools
 {
     [GeneratedRegex(@"(?i)(exec\s+\{|system\s*\(|eval\s*\(|<script|javascript:)", RegexOptions.Compiled, "en-US")]
@@ -78,7 +78,7 @@ public static partial class ThinkTools
     /// - Unicode and special characters are preserved
     /// - Timestamps are in UTC for consistent logging
     /// </remarks>
-    [McpTool("think")]
+    [McpServerTool("think")]
     [Description("Provides a space for structured thinking during complex operations, without making any state changes.")]
     public static string Think(
         [Description("The thought or reasoning to process")]

@@ -1,4 +1,5 @@
 using ModelContextProtocol.Client;
+using System.Collections.Generic;
 using System.Text.Json;
 using Xunit;
 
@@ -36,7 +37,7 @@ public class SearchOperationTests : IAsyncLifetime
         {
             // Reset the base directory
             await _client.CallToolAsync("set_base_directory", 
-                new Dictionary<string, object> { ["directory"] = Directory.GetCurrentDirectory() });
+                new Dictionary<string, object?> { ["directory"] = Directory.GetCurrentDirectory() });
         }
         catch
         {
@@ -61,14 +62,14 @@ public class SearchOperationTests : IAsyncLifetime
     {
         // Arrange
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+            new Dictionary<string, object?> { ["directory"] = _testDir });
 
         await File.WriteAllTextAsync(_testCsFilePath, 
             "public class TestSearch { private string test = \"findme\"; }");
 
         // Act
         var result = await _client.CallToolAsync("search_code", 
-            new Dictionary<string, object> { ["searchText"] = "findme" });
+            new Dictionary<string, object?> { ["searchText"] = "findme" });
 
         // Assert
         Assert.NotNull(result);
@@ -95,10 +96,10 @@ public class SearchOperationTests : IAsyncLifetime
             "public class Test { public void HandleAuthentication() { } }");
 
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+            new Dictionary<string, object?> { ["directory"] = _testDir });
 
         // Act
-        var result = await _client.CallToolAsync("semantic_search", new Dictionary<string, object>
+        var result = await _client.CallToolAsync("semantic_search", new Dictionary<string, object?>
         {
             ["query"] = "authentication method",
             ["topK"] = 1
@@ -138,11 +139,11 @@ public class SearchOperationTests : IAsyncLifetime
         }
 
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+            new Dictionary<string, object?> { ["directory"] = _testDir });
 
         // Act
         var result = await _client.CallToolAsync("search_code", 
-            new Dictionary<string, object> { ["searchText"] = "SearchableTest" });
+            new Dictionary<string, object?> { ["searchText"] = "SearchableTest" });
 
         // Assert
         Assert.NotNull(result);
@@ -245,12 +246,12 @@ namespace TestProject
         }
 
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+            new Dictionary<string, object?> { ["directory"] = _testDir });
 
         Console.WriteLine($"Set base directory to: {_testDir}");
 
         // Act: Search for "hello" which should find the method in TestMethod.cs
-        var result = await _client.CallToolAsync("semantic_search", new Dictionary<string, object>
+        var result = await _client.CallToolAsync("semantic_search", new Dictionary<string, object?>
         {
             ["query"] = "hello",
             ["topK"] = 3

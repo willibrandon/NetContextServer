@@ -180,7 +180,7 @@ public class PackageAnalyzerService(string? baseDirectory = null)
                 // Filter versions based on includePreviewVersions parameter
                 var versions = includePreviewVersions 
                     ? allVersions 
-                    : allVersions.Where(v => !v.IsPrerelease).ToList();
+                    : [.. allVersions.Where(v => !v.IsPrerelease)];
                 
                 if (versions.Any())
                 {
@@ -196,7 +196,7 @@ public class PackageAnalyzerService(string? baseDirectory = null)
                         if (!includePreviewVersions && allVersions.Any(v => v.IsPrerelease && v > latestVersion))
                         {
                             var previewVersions = allVersions.Where(v => v.IsPrerelease).ToList();
-                            if (previewVersions.Any())
+                            if (previewVersions.Count != 0)
                             {
                                 var latestPreviewVersion = previewVersions.Max();
                                 if (latestPreviewVersion != null)
@@ -211,7 +211,7 @@ public class PackageAnalyzerService(string? baseDirectory = null)
                     {
                         // Check if there are preview updates available when not including them in regular updates
                         var previewVersions = allVersions.Where(v => v.IsPrerelease && v > currentVersion).ToList();
-                        if (previewVersions.Any())
+                        if (previewVersions.Count != 0)
                         {
                             var latestPreviewVersion = previewVersions.Max();
                             if (latestPreviewVersion != null)

@@ -1,4 +1,5 @@
 ﻿using ModelContextProtocol.Client;
+using System.Collections.Generic;
 using System.Text.Json;
 
 namespace NetContextServer.Tests;
@@ -37,7 +38,7 @@ public class IgnoreOperationTests(NetContextServerFixture fixture) : IAsyncLifet
     {
         Directory.CreateDirectory(_testDir);
         await _client.CallToolAsync("set_base_directory", 
-            new Dictionary<string, object> { ["directory"] = _testDir });
+            new Dictionary<string, object?> { ["directory"] = _testDir });
     }
 
     public async Task DisposeAsync()
@@ -46,7 +47,7 @@ public class IgnoreOperationTests(NetContextServerFixture fixture) : IAsyncLifet
         {
             // Reset the base directory
             await _client.CallToolAsync("set_base_directory", 
-                new Dictionary<string, object> { ["directory"] = Directory.GetCurrentDirectory() });
+                new Dictionary<string, object?> { ["directory"] = Directory.GetCurrentDirectory() });
         }
         catch
         {
@@ -74,7 +75,7 @@ public class IgnoreOperationTests(NetContextServerFixture fixture) : IAsyncLifet
 
         // Act
         var result = await _client.CallToolAsync("add_ignore_patterns", 
-            new Dictionary<string, object> { ["patterns"] = patterns });
+            new Dictionary<string, object?> { ["patterns"] = patterns });
 
         // Assert
         Assert.NotNull(result);
@@ -99,11 +100,11 @@ public class IgnoreOperationTests(NetContextServerFixture fixture) : IAsyncLifet
         // Arrange
         var patterns = new[] { "*.txt", "*.log" };
         await _client.CallToolAsync("add_ignore_patterns", 
-            new Dictionary<string, object> { ["patterns"] = patterns });
+            new Dictionary<string, object?> { ["patterns"] = patterns });
 
         // Act
         var result = await _client.CallToolAsync("clear_ignore_patterns", 
-            []);
+            new Dictionary<string, object?>());
 
         // Assert
         Assert.NotNull(result);
@@ -123,11 +124,11 @@ public class IgnoreOperationTests(NetContextServerFixture fixture) : IAsyncLifet
         // Arrange
         var patterns = new[] { "*.txt", "*.log" };
         await _client.CallToolAsync("add_ignore_patterns", 
-            new Dictionary<string, object> { ["patterns"] = patterns });
+            new Dictionary<string, object?> { ["patterns"] = patterns });
 
         // Act
         var result = await _client.CallToolAsync("get_ignore_patterns", 
-            []);
+            new Dictionary<string, object?>());
 
         // Assert
         Assert.NotNull(result);
@@ -149,12 +150,12 @@ public class IgnoreOperationTests(NetContextServerFixture fixture) : IAsyncLifet
         // Arrange: First add some patterns
         var addPatterns = new[] { "*.secret", "password.txt", "*.config" };
         await _client.CallToolAsync("add_ignore_patterns", 
-            new Dictionary<string, object> { ["patterns"] = addPatterns });
+            new Dictionary<string, object?> { ["patterns"] = addPatterns });
 
         // Act: Remove specific patterns
         var removePatterns = new[] { "*.secret", "password.txt" };
         var result = await _client.CallToolAsync("remove_ignore_patterns", 
-            new Dictionary<string, object> { ["patterns"] = removePatterns });
+            new Dictionary<string, object?> { ["patterns"] = removePatterns });
 
         // Assert
         Assert.NotNull(result);

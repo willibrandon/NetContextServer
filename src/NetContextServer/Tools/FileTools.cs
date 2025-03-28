@@ -8,7 +8,7 @@ namespace NetContextServer.Tools;
 /// <summary>
 /// Provides MCP tools for file system operations, including file listing, project discovery, and file access.
 /// </summary>
-[McpToolType]
+[McpServerToolType]
 public static class FileTools
 {
     /// <summary>
@@ -29,7 +29,7 @@ public static class FileTools
     /// </summary>
     /// <param name="projectPath">Absolute path to the project directory containing the .cs files.</param>
     /// <returns>A JSON string containing an array of file paths.</returns>
-    [McpTool("list_files")]
+    [McpServerTool("list_files")]
     [Description("Lists all .NET source files in the specified project directory.")]
     public static string ListFiles(
         [Description("Absolute path to the project directory containing the .cs files")]
@@ -40,7 +40,7 @@ public static class FileTools
     /// Scans the current solution and returns all .csproj files found.
     /// </summary>
     /// <returns>A JSON string containing an array of project file paths.</returns>
-    [McpTool("list_projects")]
+    [McpServerTool("list_projects")]
     [Description("Scans the current solution and returns all .csproj files found.")]
     public static string ListProjects() => 
         JsonSerializer.Serialize(FileService.ListProjects(), DefaultJsonOptions);
@@ -50,7 +50,7 @@ public static class FileTools
     /// </summary>
     /// <param name="directory">Absolute path to the directory to search for .csproj files.</param>
     /// <returns>A JSON string containing an array of project file paths.</returns>
-    [McpTool("list_projects_in_dir")]
+    [McpServerTool("list_projects_in_dir")]
     [Description("Searches a specific directory for .csproj files.")]
     public static string ListProjectsInDirectory(
         [Description("Absolute path to the directory to search for .csproj files")]
@@ -61,7 +61,7 @@ public static class FileTools
     /// Returns all .sln files found in the base directory.
     /// </summary>
     /// <returns>A JSON string containing an array of solution file paths.</returns>
-    [McpTool("list_solutions")]
+    [McpServerTool("list_solutions")]
     [Description("Returns all .sln files found in the base directory.")]
     public static string ListSolutions() => 
         JsonSerializer.Serialize(FileService.ListSolutions(), DefaultJsonOptions);
@@ -71,19 +71,27 @@ public static class FileTools
     /// </summary>
     /// <param name="projectDir">Absolute path to the project directory to scan for source files.</param>
     /// <returns>A JSON string containing an array of source file paths.</returns>
-    [McpTool("list_source_files")]
+    [McpServerTool("list_source_files")]
     [Description("Lists all source files in a project directory.")]
     public static string ListSourceFiles(
         [Description("Absolute path to the project directory to scan for source files")]
-        string projectDir) => 
-        JsonSerializer.Serialize(FileService.ListSourceFiles(projectDir), DefaultJsonOptions);
+        string projectDir)
+    {
+        var result = FileService.ListSourceFiles(projectDir);
+        // If it's a single item array starting with "Error:", return it as plain text
+        if (result.Length == 1 && result[0].StartsWith("Error:"))
+        {
+            return result[0];
+        }
+        return JsonSerializer.Serialize(result, DefaultJsonOptions);
+    }
 
     /// <summary>
     /// Reads and returns the contents of a specified file.
     /// </summary>
     /// <param name="filePath">Absolute path to the file to read.</param>
     /// <returns>The contents of the file, or an error message if the file cannot be read.</returns>
-    [McpTool("open_file")]
+    [McpServerTool("open_file")]
     [Description("Reads and returns the contents of a specified file.")]
     public static string OpenFile(
         [Description("Absolute path to the file to read")]
@@ -95,7 +103,7 @@ public static class FileTools
     /// </summary>
     /// <param name="directory">Absolute path to set as the new base directory. Must be a valid, existing directory.</param>
     /// <returns>A JSON string containing a confirmation message or an error message.</returns>
-    [McpTool("set_base_directory")]
+    [McpServerTool("set_base_directory")]
     [Description("Sets the base directory for all file operations.")]
     public static string SetBaseDirectory(
         [Description("Absolute path to set as the new base directory. Must be a valid, existing directory")]
@@ -115,7 +123,7 @@ public static class FileTools
     /// Returns the current base directory used for all file operations.
     /// </summary>
     /// <returns>A JSON string containing the current base directory and whether it exists.</returns>
-    [McpTool("get_base_directory")]
+    [McpServerTool("get_base_directory")]
     [Description("Returns the current base directory used for all file operations.")]
     public static string GetBaseDirectory()
     {
