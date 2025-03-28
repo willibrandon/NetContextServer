@@ -199,10 +199,8 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
     [Fact]
     public async Task Think_WithUnicodeAndEmoji_HandlesSpecialCharactersCorrectly()
     {
-        // Arrange - Use only emoji that work well with the MCP protocol
-        // Note: While Chinese characters may display as question marks in some contexts,
-        // common emoji are correctly preserved in the JSON responses
-        var unicodeThought = "Testing emoji: 🔍 🚀 👍";
+        // Arrange
+        var unicodeThought = "Testing emoji: 🔍 🚀 👍 上下文伺服器";
 
         // Act
         var result = await _client.CallToolAsync("think", 
@@ -224,7 +222,8 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
         Assert.Contains("🔍", response.Thought);
         Assert.Contains("🚀", response.Thought);
         Assert.Contains("👍", response.Thought);
-        
+        Assert.Contains("上下文伺服器", response.Thought);
+
         Assert.NotEmpty(response.Message);
         Assert.Null(response.Error);
     }
