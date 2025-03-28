@@ -39,4 +39,17 @@ public class CoverageReport
     /// Gets or sets a suggested action to improve coverage, if applicable.
     /// </summary>
     public string? Recommendation { get; set; }
+
+    /// <summary>
+    /// The type of file being analyzed (Production, Test, Generated, or Unknown)
+    /// </summary>
+    public CoverageFileType FileType { get; set; } = CoverageFileType.Unknown;
+}
+
+public enum CoverageFileType
+{
+    Production,
+    Test,
+    Generated,
+    Unknown
 } 

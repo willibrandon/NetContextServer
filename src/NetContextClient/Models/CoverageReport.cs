@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace NetContextClient.Models;
 
 /// <summary>
@@ -23,6 +21,11 @@ public class CoverageReport
     public List<int> UncoveredLines { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the total number of executable lines in the file.
+    /// </summary>
+    public int TotalLines { get; set; }
+
+    /// <summary>
     /// Gets or sets the branch coverage information, mapping method names to their coverage percentage.
     /// </summary>
     public Dictionary<string, float> BranchCoverage { get; set; } = [];
@@ -36,4 +39,35 @@ public class CoverageReport
     /// Gets or sets a suggested action to improve coverage, if applicable.
     /// </summary>
     public string? Recommendation { get; set; }
-} 
+
+    /// <summary>
+    /// The type of file being analyzed (Production, Test, Generated, or Unknown)
+    /// </summary>
+    public CoverageFileType FileType { get; set; } = CoverageFileType.Unknown;
+}
+
+/// <summary>
+/// Represents the type of file being analyzed for code coverage
+/// </summary>
+public enum CoverageFileType
+{
+    /// <summary>
+    /// Production code file
+    /// </summary>
+    Production,
+
+    /// <summary>
+    /// Test code file
+    /// </summary>
+    Test,
+
+    /// <summary>
+    /// Generated code file
+    /// </summary>
+    Generated,
+
+    /// <summary>
+    /// Unknown file type
+    /// </summary>
+    Unknown
+}

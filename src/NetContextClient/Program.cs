@@ -5,8 +5,6 @@ using NetContextClient.Models;
 using System.CommandLine;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.Unicode;
 
 /// <summary>
 /// Command-line interface for the .NET Context Client, which interacts with the MCP server
@@ -823,7 +821,16 @@ class Program
                     await Console.Out.WriteLineAsync($"Found coverage data for {reports.Count} files:\n");
                     foreach (var report in reports)
                     {
-                        await Console.Out.WriteLineAsync($"File: {report.FilePath}");
+                        // Add file type indicator emoji
+                        string typeIndicator = report.FileType switch
+                        {
+                            CoverageFileType.Production => "📄",
+                            CoverageFileType.Test => "🧪",
+                            CoverageFileType.Generated => "⚙️",
+                            _ => "❓"
+                        };
+
+                        await Console.Out.WriteLineAsync($"File: {typeIndicator} {report.FilePath}");
                         await Console.Out.WriteLineAsync($"Coverage: {report.CoveragePercentage:F1}%");
                         
                         if (report.UncoveredLines.Count > 0)
@@ -878,7 +885,7 @@ class Program
                     var summary = JsonSerializer.Deserialize<CoverageSummary>(jsonText, DefaultJsonOptions);
                     if (summary == null)
                     {
-                        await Console.Out.WriteLineAsync("No coverage summary available.");
+                        await Console.Out.WriteLineAsync("No coverage data found.");
                         return;
                     }
 
@@ -888,16 +895,23 @@ class Program
                     await Console.Out.WriteLineAsync($"Files with Low Coverage: {summary.FilesWithLowCoverage}");
                     await Console.Out.WriteLineAsync($"Total Uncovered Lines: {summary.TotalUncoveredLines}");
                     
+                    await Console.Out.WriteLineAsync("\nFile Type Statistics:");
+                    await Console.Out.WriteLineAsync($"📄 Production Files: {summary.ProductionFiles} (Coverage: {summary.ProductionCoveragePercentage:F1}%)");
+                    await Console.Out.WriteLineAsync($"🧪 Test Files: {summary.TestFiles} (Coverage: {summary.TestCoveragePercentage:F1}%)");
+
                     if (summary.LowestCoverageFiles.Count > 0)
                     {
-                        await Console.Out.WriteLineAsync("\nFiles Needing Most Attention:");
+                        await Console.Out.WriteLineAsync("\nFiles Needing Attention:");
                         foreach (var file in summary.LowestCoverageFiles)
                         {
-                            await Console.Out.WriteLineAsync($"  {file.FilePath}: {file.CoveragePercentage:F1}% coverage");
-                            if (!string.IsNullOrEmpty(file.Recommendation))
+                            string typeIndicator = file.FileType switch
                             {
-                                await Console.Out.WriteLineAsync($"    {file.Recommendation}");
-                            }
+                                CoverageFileType.Production => "📄",
+                                CoverageFileType.Test => "🧪",
+                                CoverageFileType.Generated => "⚙️",
+                                _ => "❓"
+                            };
+                            await Console.Out.WriteLineAsync($"{typeIndicator} {file.FilePath}: {file.CoveragePercentage:F1}% coverage");
                         }
                     }
                 }

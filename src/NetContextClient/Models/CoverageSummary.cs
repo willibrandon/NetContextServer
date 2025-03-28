@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace NetContextClient.Models;
 
 /// <summary>
@@ -31,4 +29,24 @@ public class CoverageSummary
     /// Gets or sets a list of files with the lowest coverage percentages.
     /// </summary>
     public List<CoverageReport> LowestCoverageFiles { get; set; } = [];
-} 
+
+    /// <summary>
+    /// Number of production files analyzed
+    /// </summary>
+    public int ProductionFiles { get; set; }
+
+    /// <summary>
+    /// Number of test files analyzed
+    /// </summary>
+    public int TestFiles { get; set; }
+
+    /// <summary>
+    /// Average coverage percentage for production files
+    /// </summary>
+    public float ProductionCoveragePercentage { get; set; }
+
+    /// <summary>
+    /// Average coverage percentage for test files
+    /// </summary>
+    public float TestCoveragePercentage { get; set; }
+}

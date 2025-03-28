@@ -15,19 +15,49 @@ namespace NetContextServer.Services;
 /// 
 /// Coverage data is parsed and normalized into a consistent format for consumption by the MCP tools.
 /// </remarks>
-public class CoverageAnalysisService
+/// <remarks>
+/// Initializes a new instance of the CoverageAnalysisService class.
+/// </remarks>
+/// <param name="baseDirectory">Optional base directory for resolving relative paths. If null, uses the current directory.</param>
+public class CoverageAnalysisService(string? baseDirectory = null)
 {
     private const float LOW_COVERAGE_THRESHOLD = 70.0f;
-    private readonly string _baseDirectory;
+    private readonly string _baseDirectory = baseDirectory ?? Directory.GetCurrentDirectory();
+    
+    // Common test file patterns - can be made configurable via options in the future
+    private static readonly string[] DefaultTestDirectoryPatterns =
+    [
+        "/tests/",
+        "/test/",
+        ".tests/",
+        ".test/",
+        "\\tests\\",
+        "\\test\\",
+        ".tests\\",
+        ".test\\"
+    ];
 
-    /// <summary>
-    /// Initializes a new instance of the CoverageAnalysisService class.
-    /// </summary>
-    /// <param name="baseDirectory">Optional base directory for resolving relative paths. If null, uses the current directory.</param>
-    public CoverageAnalysisService(string? baseDirectory = null)
-    {
-        _baseDirectory = baseDirectory ?? Directory.GetCurrentDirectory();
-    }
+    private static readonly string[] DefaultTestFilePatterns =
+    [
+        "tests.cs",
+        "test.cs",
+        ".tests.cs",
+        ".test.cs",
+        "spec.cs",
+        ".spec.cs",
+        "fixture.cs",
+        ".fixture.cs"
+    ];
+
+    private static readonly string[] DefaultTestNamespacePatterns =
+    [
+        ".Tests.",
+        ".Test.",
+        "TestFixtures.",
+        "UnitTests.",
+        "IntegrationTests.",
+        "Fixtures."
+    ];
 
     /// <summary>
     /// Analyzes a coverage report file and returns detailed coverage information.
@@ -64,7 +94,7 @@ public class CoverageAnalysisService
     /// </summary>
     /// <param name="reports">List of individual file coverage reports.</param>
     /// <returns>A summary of overall coverage statistics.</returns>
-    public CoverageSummary GenerateSummary(List<CoverageReport> reports)
+    public static CoverageSummary GenerateSummary(List<CoverageReport> reports)
     {
         if (reports.Count == 0)
         {
@@ -74,7 +104,11 @@ public class CoverageAnalysisService
                 TotalCoveragePercentage = 0,
                 FilesWithLowCoverage = 0,
                 TotalUncoveredLines = 0,
-                LowestCoverageFiles = []
+                LowestCoverageFiles = [],
+                ProductionFiles = 0,
+                TestFiles = 0,
+                ProductionCoveragePercentage = 0,
+                TestCoveragePercentage = 0
             };
         }
 
@@ -82,27 +116,75 @@ public class CoverageAnalysisService
         var totalUncoveredLines = reports.Sum(r => r.UncoveredLines.Count);
         var totalCoveredLines = totalLines - totalUncoveredLines;
 
+        var productionFiles = reports.Where(r => r.FileType == CoverageFileType.Production).ToList();
+        var testFiles = reports.Where(r => r.FileType == CoverageFileType.Test).ToList();
+
         var summary = new CoverageSummary
         {
             TotalFiles = reports.Count,
             TotalCoveragePercentage = totalLines > 0 ? (float)totalCoveredLines / totalLines * 100 : 0,
             FilesWithLowCoverage = reports.Count(r => r.CoveragePercentage < LOW_COVERAGE_THRESHOLD),
             TotalUncoveredLines = totalUncoveredLines,
-            LowestCoverageFiles = reports
+            LowestCoverageFiles = [.. reports
                 .OrderBy(r => r.CoveragePercentage)
-                .Take(5)
-                .ToList()
+                .Take(5)],
+            ProductionFiles = productionFiles.Count,
+            TestFiles = testFiles.Count,
+            ProductionCoveragePercentage = productionFiles.Count != 0
+                ? productionFiles.Average(r => r.CoveragePercentage) 
+                : 0,
+            TestCoveragePercentage = testFiles.Count != 0
+                ? testFiles.Average(r => r.CoveragePercentage) 
+                : 0
         };
 
         return summary;
     }
 
-    private bool IsGeneratedCode(string filePath)
+    private static bool IsGeneratedCode(string filePath)
     {
         // Check for common generated code patterns
         return filePath.Contains("/obj/") ||        // Generated files in obj directory
                filePath.EndsWith(".g.cs") ||        // Standard generated code suffix
                filePath.EndsWith(".generated.cs");  // Alternative generated code suffix
+    }
+
+    private static bool IsTestFile(string filePath)
+    {
+        // Normalize path separators to handle both Windows and Unix styles
+        var normalizedPath = filePath.Replace('\\', '/').ToLowerInvariant();
+
+        // Check directory patterns
+        foreach (var pattern in DefaultTestDirectoryPatterns)
+        {
+            var normalizedPattern = pattern.Replace('\\', '/').ToLowerInvariant();
+            if (normalizedPath.Contains(normalizedPattern))
+                return true;
+        }
+
+        // Check file name patterns
+        var fileName = Path.GetFileName(normalizedPath).ToLowerInvariant();
+        if (DefaultTestFilePatterns.Any(pattern => 
+            fileName.EndsWith(pattern.ToLowerInvariant())))
+            return true;
+
+        // Check namespace patterns (if the file path contains them)
+        if (DefaultTestNamespacePatterns.Any(pattern => 
+            normalizedPath.Contains(pattern, StringComparison.InvariantCultureIgnoreCase)))
+            return true;
+
+        // Additional check for files in test directories
+        return normalizedPath.Contains("/tests/") ||
+               normalizedPath.Contains("/test/");
+    }
+
+    private static CoverageFileType DetermineFileType(string filePath)
+    {
+        if (IsGeneratedCode(filePath))
+            return CoverageFileType.Generated;
+        if (IsTestFile(filePath))
+            return CoverageFileType.Test;
+        return CoverageFileType.Production;
     }
 
     private async Task<List<CoverageReport>> ParseCoverletJsonAsync(string filePath)
@@ -145,9 +227,11 @@ public class CoverageAnalysisService
             return null;
         }
 
+        var filePath = NormalizePath(classProp.Name);
         var report = new CoverageReport
         {
-            FilePath = NormalizePath(classProp.Name)
+            FilePath = filePath,
+            FileType = DetermineFileType(filePath)
         };
 
         var totalLines = 0;
@@ -227,8 +311,8 @@ public class CoverageAnalysisService
         {
             if (line.StartsWith("SF:"))
             {
-                // Skip generated code files
                 var sourceFile = line[3..];
+                // Skip generated code files
                 if (IsGeneratedCode(sourceFile))
                 {
                     currentReport = null;
@@ -244,9 +328,12 @@ public class CoverageAnalysisService
                         : 0;
                     result.Add(currentReport);
                 }
+                
+                var normalizedPath = NormalizePath(sourceFile);
                 currentReport = new CoverageReport
                 {
-                    FilePath = NormalizePath(sourceFile),
+                    FilePath = normalizedPath,
+                    FileType = DetermineFileType(normalizedPath),
                     UncoveredLines = []
                 };
                 totalLines = 0;
@@ -307,9 +394,11 @@ public class CoverageAnalysisService
 
         foreach (var fileGroup in fileElements)
         {
+            var normalizedPath = NormalizePath(fileGroup.Key!);
             var report = new CoverageReport
             {
-                FilePath = NormalizePath(fileGroup.Key!),
+                FilePath = normalizedPath,
+                FileType = DetermineFileType(normalizedPath),
                 UncoveredLines = []
             };
 

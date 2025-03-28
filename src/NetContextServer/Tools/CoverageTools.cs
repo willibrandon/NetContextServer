@@ -93,7 +93,7 @@ public static class CoverageTools
             
             var service = new CoverageAnalysisService(FileValidationService.BaseDirectory);
             var reports = await service.AnalyzeCoverageAsync(reportPath, format);
-            var summary = service.GenerateSummary(reports);
+            var summary = CoverageAnalysisService.GenerateSummary(reports);
 
             return JsonSerializer.Serialize(summary, DefaultJsonOptions);
         }
