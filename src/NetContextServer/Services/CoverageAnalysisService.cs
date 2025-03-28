@@ -97,6 +97,14 @@ public class CoverageAnalysisService
         return summary;
     }
 
+    private bool IsGeneratedCode(string filePath)
+    {
+        // Check for common generated code patterns
+        return filePath.Contains("/obj/") ||        // Generated files in obj directory
+               filePath.EndsWith(".g.cs") ||        // Standard generated code suffix
+               filePath.EndsWith(".generated.cs");  // Alternative generated code suffix
+    }
+
     private async Task<List<CoverageReport>> ParseCoverletJsonAsync(string filePath)
     {
         var text = await File.ReadAllTextAsync(filePath);
@@ -113,6 +121,10 @@ public class CoverageAnalysisService
                 {
                     foreach (var classProp in classesEl.EnumerateObject())
                     {
+                        // Skip generated code files
+                        if (IsGeneratedCode(classProp.Name))
+                            continue;
+
                         var report = ExtractCoverageFromClass(classProp);
                         if (report != null)
                         {
@@ -215,6 +227,14 @@ public class CoverageAnalysisService
         {
             if (line.StartsWith("SF:"))
             {
+                // Skip generated code files
+                var sourceFile = line[3..];
+                if (IsGeneratedCode(sourceFile))
+                {
+                    currentReport = null;
+                    continue;
+                }
+
                 // New file section
                 if (currentReport != null)
                 {
@@ -226,7 +246,7 @@ public class CoverageAnalysisService
                 }
                 currentReport = new CoverageReport
                 {
-                    FilePath = NormalizePath(line[3..]),
+                    FilePath = NormalizePath(sourceFile),
                     UncoveredLines = []
                 };
                 totalLines = 0;
@@ -283,7 +303,7 @@ public class CoverageAnalysisService
 
         var fileElements = doc.Descendants("class")
             .GroupBy(x => x.Attribute("filename")?.Value)
-            .Where(g => g.Key != null);
+            .Where(g => g.Key != null && !IsGeneratedCode(g.Key));
 
         foreach (var fileGroup in fileElements)
         {

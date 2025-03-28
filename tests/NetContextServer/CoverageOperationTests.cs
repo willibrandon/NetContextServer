@@ -454,4 +454,64 @@ end_of_record";
         Assert.True(response.RootElement.TryGetProperty("error", out var errorElement));
         Assert.Contains("format", errorElement.GetString(), StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task CoverageAnalysis_ExcludesGeneratedCode()
+    {
+        // Arrange
+        await _client.CallToolAsync("set_base_directory", 
+            new Dictionary<string, object?> { ["directory"] = _testDir });
+
+        // Create a coverage file with both regular and generated code
+        var coverageContent = @"{
+            ""Modules"": {
+                ""TestModule"": {
+                    ""Classes"": {
+                        ""RegularCode.cs"": {
+                            ""Lines"": {
+                                ""10"": 1,
+                                ""11"": 0,
+                                ""12"": 1
+                            }
+                        },
+                        ""obj/Debug/net9.0/Generated.g.cs"": {
+                            ""Lines"": {
+                                ""15"": 1,
+                                ""16"": 0
+                            }
+                        },
+                        ""Models/Generated.generated.cs"": {
+                            ""Lines"": {
+                                ""20"": 1,
+                                ""21"": 0
+                            }
+                        }
+                    }
+                }
+            }
+        }";
+        await File.WriteAllTextAsync(_testCoverageFile, coverageContent);
+
+        // Act
+        var result = await _client.CallToolAsync("coverage_analysis", 
+            new Dictionary<string, object?> { 
+                ["reportPath"] = _testCoverageFile,
+                ["coverageFormat"] = "coverlet"
+            });
+
+        // Assert
+        Assert.NotNull(result);
+        var content = result.Content.FirstOrDefault(c => c.Type == "text");
+        Assert.NotNull(content);
+        Assert.NotNull(content.Text);
+
+        var reports = JsonSerializer.Deserialize<List<CoverageReport>>(content.Text, DefaultJsonOptions);
+        Assert.NotNull(reports);
+        Assert.Single(reports); // Should only contain the regular code file
+        
+        var report = reports[0];
+        Assert.Equal("RegularCode.cs", report.FilePath);
+        Assert.Equal(66.67f, report.CoveragePercentage, 2); // 2/3 lines covered
+        Assert.Contains(11, report.UncoveredLines);
+    }
 } 
