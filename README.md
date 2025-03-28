@@ -25,6 +25,11 @@ NetContextServer empowers AI coding assistants like Cursor AI to deeply understa
   - 🔍 **Deep Dependency Visualization**: See transitive dependencies with interactive, color-coded graphs
   - 🧩 **Smart Grouping**: Visually group related packages for easier navigation
   - 📊 **Update Recommendations**: Identify outdated packages and security issues
+- 📊 **Test Coverage Analysis**: Deep insights into your test coverage
+  - 🎯 **Multi-Format Support**: Parse coverage data from Coverlet, LCOV, and Cobertura XML
+  - 📈 **Detailed Reports**: File-level coverage percentages and uncovered line tracking
+  - 🔄 **Branch Coverage**: Track method-level branch coverage where available
+  - 💡 **Smart Recommendations**: Get suggestions for improving test coverage
 - ⚡ **Fast & Efficient**: Quick indexing and response times for large codebases
 
 ## 🚀 Quick Start
@@ -78,6 +83,10 @@ Now Cursor AI can understand your codebase! Try asking it questions like:
 - "What's the current base directory for file operations?"
 - "Help me think through the authentication system design"
 - "Document my reasoning about this architectural decision"
+- "Analyze test coverage for MyService.cs"
+- "Show me uncovered lines in the authentication module"
+- "What's the overall test coverage percentage?"
+- "Which files have the lowest test coverage?"
 
 ## 📚 Documentation
 
@@ -95,6 +104,11 @@ Now Cursor AI can understand your codebase! Try asking it questions like:
 - 📖 **File Content Access**: Read source files with safety checks and size limits
 - 🛡️ **Security**: Built-in safeguards for sensitive files and directory access
 - 🎯 **Pattern Management**: Flexible ignore patterns for controlling file access
+- 📊 **Coverage Analysis**: Parse and analyze test coverage data
+  - 📈 **Coverage Reports**: Support for Coverlet JSON, LCOV, and Cobertura XML formats
+  - 🎯 **Line Coverage**: Track which lines are covered by tests
+  - 🌳 **Branch Coverage**: Monitor method-level branch coverage
+  - 💡 **Recommendations**: Get actionable suggestions to improve coverage
 - 💭 **Structured Thinking**: Document and validate reasoning about complex operations
   - 🧩 **AI-Optimized Reasoning**: Based on [Anthropic's research](https://www.anthropic.com/engineering/claude-think-tool) on improving LLM problem-solving
   - 📋 **Task Planning**: Break down complex problems into manageable steps
@@ -185,6 +199,34 @@ Project: MyProject.csproj
     └─ Microsoft.Extensions.DependencyInjection
        └─ Microsoft.*
           └─ Microsoft.Extensions.DependencyInjection.Abstractions
+```
+
+6. **Analyze Test Coverage**:
+```bash
+# Set your base directory first
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "path/to/your/project"
+
+# Analyze coverage from a Coverlet JSON report
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-analysis --report-path "TestResults/coverage.json"
+
+# Get a coverage summary
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-summary --report-path "TestResults/coverage.json"
+```
+
+Example coverage analysis output:
+```json
+[
+  {
+    "filePath": "src/MyProject/Services/UserService.cs",
+    "coveragePercentage": 85.3,
+    "uncoveredLines": [42, 43, 88],
+    "branchCoverage": {
+      "ValidateUser()": 75.0,
+      "GetUserById()": 100.0
+    },
+    "recommendation": "Consider adding tests for the user validation error paths"
+  }
+]
 ```
 
 ### Search Commands

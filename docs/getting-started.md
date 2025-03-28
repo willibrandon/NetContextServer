@@ -122,6 +122,57 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- add-ignore-
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- get-ignore-patterns
 ```
 
+## Using Coverage Analysis
+
+NetContextServer includes powerful test coverage analysis capabilities that help you understand and improve your test coverage. Here's how to get started:
+
+### 1. Generate Coverage Reports
+
+First, you'll need to generate a coverage report. NetContextServer supports multiple formats:
+
+**Using Coverlet (recommended):**
+```bash
+dotnet test --collect:"XPlat Code Coverage"
+```
+This will generate a coverage report in the `TestResults` directory.
+
+**Using LCOV:**
+If you're using LCOV, make sure your test runner is configured to output LCOV format (`.info` files).
+
+**Using Cobertura:**
+For Cobertura XML format, configure your test runner to output `.cobertura.xml` files.
+
+### 2. Analyze Coverage
+
+Once you have a coverage report, you can analyze it using NetContextServer:
+
+```bash
+# Analyze coverage for detailed per-file information
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-analysis --report-path "TestResults/coverage.json"
+
+# Get a summary of overall coverage
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-summary --report-path "TestResults/coverage.json"
+```
+
+### 3. Interpret Results
+
+The coverage analysis provides several key insights:
+
+- **Coverage Percentage**: The percentage of lines covered by tests
+- **Uncovered Lines**: Specific line numbers that aren't covered by tests
+- **Branch Coverage**: For methods with conditional logic, shows how many branches are covered
+- **Recommendations**: Suggestions for improving coverage in specific areas
+
+### 4. Improve Coverage
+
+Use the analysis results to:
+1. Identify files with low coverage
+2. Focus on uncovered lines in critical code paths
+3. Add tests for uncovered branches in complex methods
+4. Track coverage trends over time
+
+For more details on coverage analysis commands and options, see the [Tool Reference](tool-reference.md#coverage-analysis-tools).
+
 ## Troubleshooting
 
 ### Common Issues
