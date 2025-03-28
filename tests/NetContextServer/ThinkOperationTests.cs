@@ -1,5 +1,4 @@
 using ModelContextProtocol.Client;
-using System.Collections.Generic;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -200,7 +199,9 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
     [Fact]
     public async Task Think_WithUnicodeAndEmoji_HandlesSpecialCharactersCorrectly()
     {
-        // Arrange
+        // Arrange - Use only emoji that work well with the MCP protocol
+        // Note: While Chinese characters may display as question marks in some contexts,
+        // common emoji are correctly preserved in the JSON responses
         var unicodeThought = "Testing emoji: 🔍 🚀 👍";
 
         // Act
@@ -215,10 +216,15 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
 
         var response = JsonSerializer.Deserialize<ThinkResponse>(content.Text, DefaultJsonOptions);
         Assert.NotNull(response);
+        
+        // Verify the thought is correctly returned
         Assert.Equal(unicodeThought, response.Thought);
+        
+        // Verify at least some emoji characters are present
         Assert.Contains("🔍", response.Thought);
         Assert.Contains("🚀", response.Thought);
         Assert.Contains("👍", response.Thought);
+        
         Assert.NotEmpty(response.Message);
         Assert.Null(response.Error);
     }
@@ -267,8 +273,10 @@ public class ThinkOperationTests(NetContextServerFixture fixture) : IAsyncLifeti
         var response = JsonSerializer.Deserialize<ThinkResponse>(content.Text, DefaultJsonOptions);
         Assert.NotNull(response);
         Assert.NotNull(response.Timestamp);
+        
+        // Verify ISO 8601 format
         Assert.True(DateTime.TryParse(response.Timestamp, out _));
-        Assert.Contains("T", response.Timestamp);
-        Assert.Contains(":", response.Timestamp);
+        Assert.Contains("T", response.Timestamp); // ISO 8601 separator
+        Assert.Contains(":", response.Timestamp); // Time separator
     }
 }

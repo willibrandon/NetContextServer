@@ -1,5 +1,4 @@
 using ModelContextProtocol.Client;
-using System.Collections.Generic;
 using System.Text.Json;
 
 namespace NetContextServer.Tests;
