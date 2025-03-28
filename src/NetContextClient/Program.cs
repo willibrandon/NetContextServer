@@ -5,8 +5,6 @@ using NetContextClient.Models;
 using System.CommandLine;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.Unicode;
 
 /// <summary>
 /// Command-line interface for the .NET Context Client, which interacts with the MCP server
@@ -793,6 +791,138 @@ class Program
             }
         }, thoughtOption);
 
+        // Coverage Analysis command
+        var coverageAnalysisCommand = new Command("coverage-analysis", "Analyze a code coverage report file");
+        var reportPathOption = new Option<string>("--report-path", "Path to the coverage report file") { IsRequired = true };
+        var formatOption = new Option<string>("--format", "Coverage format (coverlet, lcov, cobertura)") { IsRequired = false };
+        coverageAnalysisCommand.AddOption(reportPathOption);
+        coverageAnalysisCommand.AddOption(formatOption);
+        coverageAnalysisCommand.SetHandler(async (string reportPath, string? format) =>
+        {
+            try
+            {
+                var args = new Dictionary<string, object?> { ["reportPath"] = reportPath };
+                if (!string.IsNullOrEmpty(format))
+                {
+                    args["coverageFormat"] = format;
+                }
+                
+                var result = await client.CallToolAsync("coverage_analysis", args);
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
+                {
+                    var reports = JsonSerializer.Deserialize<List<CoverageReport>>(jsonText, DefaultJsonOptions);
+                    if (reports == null || reports.Count == 0)
+                    {
+                        await Console.Out.WriteLineAsync("No coverage data found.");
+                        return;
+                    }
+
+                    await Console.Out.WriteLineAsync($"Found coverage data for {reports.Count} files:\n");
+                    foreach (var report in reports)
+                    {
+                        // Add file type indicator emoji
+                        string typeIndicator = report.FileType switch
+                        {
+                            CoverageFileType.Production => "📄",
+                            CoverageFileType.Test => "🧪",
+                            CoverageFileType.Generated => "⚙️",
+                            _ => "❓"
+                        };
+
+                        await Console.Out.WriteLineAsync($"File: {typeIndicator} {report.FilePath}");
+                        await Console.Out.WriteLineAsync($"Coverage: {report.CoveragePercentage:F1}%");
+                        
+                        if (report.UncoveredLines.Count > 0)
+                        {
+                            await Console.Out.WriteLineAsync($"Uncovered Lines: {string.Join(", ", report.UncoveredLines)}");
+                        }
+                        
+                        if (report.BranchCoverage.Count > 0)
+                        {
+                            await Console.Out.WriteLineAsync("Branch Coverage:");
+                            foreach (KeyValuePair<string, float> pair in report.BranchCoverage)
+                            {
+                                await Console.Out.WriteLineAsync($"  {pair.Key}: {pair.Value:F1}%");
+                            }
+                        }
+                        
+                        if (!string.IsNullOrEmpty(report.Recommendation))
+                        {
+                            await Console.Out.WriteLineAsync($"\nRecommendation: {report.Recommendation}");
+                        }
+                        
+                        await Console.Out.WriteLineAsync(new string('-', 80));
+                        await Console.Out.WriteLineAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, reportPathOption, formatOption);
+
+        // Coverage Summary command
+        var coverageSummaryCommand = new Command("coverage-summary", "Get a high-level summary of code coverage");
+        coverageSummaryCommand.AddOption(reportPathOption);
+        coverageSummaryCommand.AddOption(formatOption);
+        coverageSummaryCommand.SetHandler(async (string reportPath, string? format) =>
+        {
+            try
+            {
+                var args = new Dictionary<string, object?> { ["reportPath"] = reportPath };
+                if (!string.IsNullOrEmpty(format))
+                {
+                    args["coverageFormat"] = format;
+                }
+                
+                var result = await client.CallToolAsync("coverage_summary", args);
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
+                {
+                    var summary = JsonSerializer.Deserialize<CoverageSummary>(jsonText, DefaultJsonOptions);
+                    if (summary == null)
+                    {
+                        await Console.Out.WriteLineAsync("No coverage data found.");
+                        return;
+                    }
+
+                    await Console.Out.WriteLineAsync($"Coverage Summary:");
+                    await Console.Out.WriteLineAsync($"Total Files: {summary.TotalFiles}");
+                    await Console.Out.WriteLineAsync($"Overall Coverage: {summary.TotalCoveragePercentage:F1}%");
+                    await Console.Out.WriteLineAsync($"Files with Low Coverage: {summary.FilesWithLowCoverage}");
+                    await Console.Out.WriteLineAsync($"Total Uncovered Lines: {summary.TotalUncoveredLines}");
+                    
+                    await Console.Out.WriteLineAsync("\nFile Type Statistics:");
+                    await Console.Out.WriteLineAsync($"📄 Production Files: {summary.ProductionFiles} (Coverage: {summary.ProductionCoveragePercentage:F1}%)");
+                    await Console.Out.WriteLineAsync($"🧪 Test Files: {summary.TestFiles} (Coverage: {summary.TestCoveragePercentage:F1}%)");
+
+                    if (summary.LowestCoverageFiles.Count > 0)
+                    {
+                        await Console.Out.WriteLineAsync("\nFiles Needing Attention:");
+                        foreach (var file in summary.LowestCoverageFiles)
+                        {
+                            string typeIndicator = file.FileType switch
+                            {
+                                CoverageFileType.Production => "📄",
+                                CoverageFileType.Test => "🧪",
+                                CoverageFileType.Generated => "⚙️",
+                                _ => "❓"
+                            };
+                            await Console.Out.WriteLineAsync($"{typeIndicator} {file.FilePath}: {file.CoveragePercentage:F1}% coverage");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"Error: {ex.Message}");
+                Environment.Exit(1);
+            }
+        }, reportPathOption, formatOption);
+
         rootCommand.AddCommand(helloCommand);
         rootCommand.AddCommand(setBaseDirCommand);
         rootCommand.AddCommand(getBaseDirCommand);
@@ -811,6 +941,8 @@ class Program
         rootCommand.AddCommand(semanticSearchCommand);
         rootCommand.AddCommand(analyzePackagesCommand);
         rootCommand.AddCommand(thinkCommand);
+        rootCommand.AddCommand(coverageAnalysisCommand);
+        rootCommand.AddCommand(coverageSummaryCommand);
         
         return await rootCommand.InvokeAsync(args);
     }

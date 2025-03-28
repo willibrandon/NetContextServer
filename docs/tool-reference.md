@@ -422,4 +422,59 @@ The server provides clear error messages for common scenarios:
 - Invalid patterns
 - File size limits exceeded
 - Restricted file types
-- Missing environment variables for semantic search 
+- Missing environment variables for semantic search
+
+## Coverage Analysis Tools
+
+### `coverage-analysis`
+
+Analyzes test coverage data from various formats and provides detailed insights.
+
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-analysis --report-path <path> [--format <format>]
+```
+
+**Parameters:**
+- `--report-path`: Path to the coverage report file
+- `--format` (optional): Coverage report format. Supported values:
+  - `coverlet-json` (default): Coverlet JSON format
+  - `lcov`: LCOV format
+  - `cobertura`: Cobertura XML format
+
+**Output:**
+Returns a list of coverage reports for each file, including:
+- File path
+- Coverage percentage
+- List of uncovered lines
+- Branch coverage data (where available)
+- Recommendations for improving coverage
+
+**Example:**
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-analysis --report-path "TestResults/coverage.json"
+```
+
+### `coverage-summary`
+
+Generates a summary of test coverage across all files.
+
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-summary --report-path <path> [--format <format>]
+```
+
+**Parameters:**
+- `--report-path`: Path to the coverage report file
+- `--format` (optional): Coverage report format (same as coverage-analysis)
+
+**Output:**
+Returns a summary object containing:
+- Total number of files
+- Overall coverage percentage
+- Total number of uncovered lines
+- List of files with coverage below threshold
+- List of files with lowest coverage
+
+**Example:**
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-summary --report-path "TestResults/coverage.json"
+``` 
