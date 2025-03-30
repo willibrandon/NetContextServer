@@ -241,4 +241,13 @@ internal static class IgnorePatternService
             return Path.GetFileName(filePath).Equals(pattern, StringComparison.OrdinalIgnoreCase);
         });
     }
+
+    /// <summary>
+    /// Checks if there are any user-defined ignore patterns.
+    /// </summary>
+    /// <returns>True if there are user-defined patterns, false otherwise.</returns>
+    public static bool HasUserDefinedPatterns()
+    {
+        return UserIgnorePatterns.Count > 0;
+    }
 }

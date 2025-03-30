@@ -269,6 +269,44 @@ Simple health check endpoint that returns a greeting message.
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- hello
 ```
 
+### `version`
+Gets version and configuration information about the NetContextServer.
+
+**Parameters:** None
+
+**Example:**
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- version
+```
+
+**Output Example:**
+```
+NetContextServer v1.0.0
+──────────────────────────────────────────────────────
+
+System Information:
+  • Runtime: .NET 9.0.0
+  • OS: Unix 24.1.0
+
+Features:
+  • Semantic Search: ✗ Disabled
+
+Active Configuration:
+  • Base Directory: /Users/username/projects/myapp
+  • Has Ignore Patterns: true
+  • State File Location: /Users/username/projects/myapp/ignore_patterns.json
+```
+
+**Response Fields:**
+- `version`: Current version of NetContextServer
+- `runtimeVersion`: Current .NET runtime version
+- `operatingSystem`: Current operating system information
+- `semanticSearchEnabled`: Whether semantic search is configured and available
+- `activeConfiguration`: Dictionary of current configuration settings including:
+  - `BaseDirectory`: Current base directory for file operations
+  - `HasIgnorePatterns`: Whether custom ignore patterns are defined
+  - `StateFileLocation`: Path to the ignore patterns state file
+
 ### `think`
 Provides a space for structured thinking during complex operations, allowing AI models to reason about actions, verify compliance with rules, and plan next steps without making any state changes.
 
