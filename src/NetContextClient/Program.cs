@@ -923,6 +923,76 @@ class Program
             }
         }, reportPathOption, formatOption);
 
+        // Version command
+        var versionCommand = new Command("version", "Get version and configuration information");
+        versionCommand.SetHandler(async () =>
+        {
+            try
+            {
+                var result = await client.CallToolAsync("version", new Dictionary<string, object?>());
+                var jsonText = result.Content.First(c => c.Type == "text").Text;
+                if (jsonText != null)
+                {
+                    var response = JsonSerializer.Deserialize<VersionResponse>(jsonText, DefaultJsonOptions);
+                    if (response != null)
+                    {
+                        // Parse state file location first if it exists
+                        if (response.ActiveConfiguration.TryGetValue("StateFileLocation", out var stateFileJson))
+                        {
+                            var stateFile = JsonSerializer.Deserialize<StateFileLocationResponse>(stateFileJson);
+                            response.ActiveConfiguration["StateFileLocation"] = stateFile?.StateFilePath ?? stateFileJson;
+                        }
+
+                        // Header with version
+                        await Console.Out.WriteLineAsync($"\u001b[1;36mNetContextServer\u001b[0m v{response.Version}");
+                        await Console.Out.WriteLineAsync(new string('─', 50));
+                        
+                        // System Information
+                        await Console.Out.WriteLineAsync("\u001b[1;33mSystem Information:\u001b[0m");
+                        await Console.Out.WriteLineAsync($"  \u001b[90m•\u001b[0m Runtime: \u001b[32m.NET {response.RuntimeVersion}\u001b[0m");
+                        await Console.Out.WriteLineAsync($"  \u001b[90m•\u001b[0m OS: \u001b[32m{response.OperatingSystem}\u001b[0m");
+                        
+                        // Features
+                        await Console.Out.WriteLineAsync("\n\u001b[1;33mFeatures:\u001b[0m");
+                        await Console.Out.WriteLineAsync($"  \u001b[90m•\u001b[0m Semantic Search: {(response.SemanticSearchEnabled ? "\u001b[32m✓ Enabled\u001b[0m" : "\u001b[31m✗ Disabled\u001b[0m")}");
+                        
+                        // Configuration
+                        if (response.ActiveConfiguration.Count > 0)
+                        {
+                            await Console.Out.WriteLineAsync("\n\u001b[1;33mActive Configuration:\u001b[0m");
+                            foreach (var (key, value) in response.ActiveConfiguration)
+                            {
+                                // Format key in a more readable way
+                                var displayKey = string.Join(" ", key.Split(new[] { '_' }, StringSplitOptions.RemoveEmptyEntries)
+                                    .Select(word => char.ToUpper(word[0]) + word.Substring(1)));
+                                
+                                // Special formatting for boolean values and paths
+                                string displayValue = value;
+                                if (bool.TryParse(value, out bool boolValue))
+                                {
+                                    displayValue = boolValue ? "\u001b[32m✓ Yes\u001b[0m" : "\u001b[31m✗ No\u001b[0m";
+                                }
+                                else if (value.Contains(Path.DirectorySeparatorChar))
+                                {
+                                    displayValue = $"\u001b[36m{value}\u001b[0m";
+                                }
+
+                                await Console.Out.WriteLineAsync($"  \u001b[90m•\u001b[0m {displayKey}: {displayValue}");
+                            }
+                        }
+                        
+                        // Footer
+                        await Console.Out.WriteLineAsync(new string('─', 50));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await Console.Error.WriteLineAsync($"\u001b[31mError: {ex.Message}\u001b[0m");
+                Environment.Exit(1);
+            }
+        });
+
         rootCommand.AddCommand(helloCommand);
         rootCommand.AddCommand(setBaseDirCommand);
         rootCommand.AddCommand(getBaseDirCommand);
@@ -943,6 +1013,7 @@ class Program
         rootCommand.AddCommand(thinkCommand);
         rootCommand.AddCommand(coverageAnalysisCommand);
         rootCommand.AddCommand(coverageSummaryCommand);
+        rootCommand.AddCommand(versionCommand);
         
         return await rootCommand.InvokeAsync(args);
     }

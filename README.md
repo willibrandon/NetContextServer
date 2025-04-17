@@ -4,7 +4,7 @@
 
 🔍 **Supercharge Your AI Coding Assistant with Deep .NET Codebase Understanding**
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Built with .NET](https://img.shields.io/badge/Built%20with-.NET-512BD4)](https://dotnet.microsoft.com/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-brightgreen)](https://modelcontextprotocol.io/)
 [![.NET Build and Test](https://github.com/willibrandon/NetContextServer/actions/workflows/ci.yaml/badge.svg)](https://github.com/willibrandon/NetContextServer/actions/workflows/ci.yaml)
@@ -161,17 +161,22 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-di
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- get-base-dir
 ```
 
-3. **List Projects**:
+3. **Get Version Information**:
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- version
+```
+
+4. **List Projects**:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-projects-in-dir --directory "D:\YourProject\src"
 ```
 
-4. **List Source Files**:
+5. **List Source Files**:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-source-files --project-dir "D:\YourProject\src\YourProject"
 ```
 
-5. **Analyze Packages**:
+6. **Analyze Packages**:
 ```bash
 # Set your base directory first
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "path/to/your/project"
@@ -201,7 +206,7 @@ Project: MyProject.csproj
           └─ Microsoft.Extensions.DependencyInjection.Abstractions
 ```
 
-6. **Analyze Test Coverage**:
+7. **Analyze Test Coverage**:
 ```bash
 # Set your base directory first
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "path/to/your/project"
@@ -302,22 +307,27 @@ The following patterns are ignored by default to protect sensitive information:
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- set-base-dir --directory "D:\Projects\MyApp"
 ```
 
-2. Set up custom ignore patterns:
+2. Check server version and configuration:
+```bash
+dotnet run --project src/NetContextClient/NetContextClient.csproj -- version
+```
+
+3. Set up custom ignore patterns:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- add-ignore-patterns --patterns "*.generated.cs" "*.designer.cs"
 ```
 
-3. List all projects:
+4. List all projects:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- list-projects-in-dir --directory "D:\Projects\MyApp\src"
 ```
 
-4. Analyze your project's package dependencies:
+5. Analyze your project's package dependencies:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- analyze-packages
 ```
 
-5. Search for authentication-related code:
+6. Search for authentication-related code:
 ```bash
 dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-search --query "user authentication and authorization logic"
 ```
