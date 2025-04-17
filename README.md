@@ -11,16 +11,16 @@
 
 </div>
 
-NetContextServer empowers AI coding assistants like Cursor AI to deeply understand your .NET codebase through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction). This means more accurate code suggestions, better answers to your questions, and a more productive coding experience.
+NetContextServer empowers AI coding assistants like VS Code to deeply understand your .NET codebase through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction). This means more accurate code suggestions, better answers to your questions, and a more productive coding experience.
 
-![Demo of NetContextServer with Cursor AI](.github/images/demo.gif)
+![Demo of NetContextServer with VS Code](.github/images/demo.gif)
 
 ## ✨ Key Features
 
 - 🧠 **Semantic Code Search**: Find code by describing what you're looking for in natural language
 - 🔍 **Intelligent Navigation**: Help AI tools understand your project structure and dependencies
 - 🛡️ **Built-in Security**: Safe file access with automatic protection of sensitive data
-- 🚀 **Cursor AI Integration**: Seamless setup with Cursor AI for enhanced coding assistance
+- 🚀 **VS Code Integration**: Seamless setup with VS Code for enhanced coding assistance
 - 📦 **Package Analysis**: Understand your dependencies and get update recommendations
   - 🔍 **Deep Dependency Visualization**: See transitive dependencies with interactive, color-coded graphs
   - 🧩 **Smart Grouping**: Visually group related packages for easier navigation
@@ -59,10 +59,10 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-se
 
 👉 **[Read our Getting Started Guide](docs/getting-started.md)** for detailed setup instructions and best practices.
 
-## 🔌 Integration with Cursor AI
+## 🔌 Integration with VS Code
 
-1. Open Cursor AI
-2. Press `Cmd/Ctrl + Shift + P`
+1. Open Visual Studio Code
+2. Press `Ctrl + Shift + P` (or `Cmd + Shift + P` on macOS)
 3. Type "Configure MCP Server"
 4. Enter:
 ```json
@@ -72,7 +72,7 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-se
 }
 ```
 
-Now Cursor AI can understand your codebase! Try asking it questions like:
+Now VS Code can understand your codebase! Try asking it questions like:
 - "List all .NET source files in this project directory"
 - "Search for exact text matches in the code files"
 - "Analyze NuGet packages in all projects"
@@ -215,8 +215,7 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- coverage-su
 
 Example coverage analysis output:
 ```json
-[
-  {
+[{
     "filePath": "src/MyProject/Services/UserService.cs",
     "coveragePercentage": 85.3,
     "uncoveredLines": [42, 43, 88],
@@ -327,16 +326,16 @@ dotnet run --project src/NetContextClient/NetContextClient.csproj -- semantic-se
 
 NetContextServer implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction), allowing seamless integration with AI coding assistants that support this protocol, such as:
 
-- **Cursor AI**: Provides your AI assistant with full context of your codebase for more accurate code generation and assistance
+- **VS Code**: Provides your AI assistant with full context of your codebase for more accurate code generation and assistance
 - **Other MCP-compatible tools**: Any tool that implements the Model Context Protocol can connect to NetContextServer
 
-To use with Cursor AI:
-1. Configure Cursor AI to use the NetContextServer as its MCP provider
+To use with VS Code:
+1. Configure VS Code to use the NetContextServer as its MCP provider
 2. Enjoy enhanced code assistance with full codebase context
 
-For testing and debugging MCP interactions, you can use [CursorMCPMonitor](https://github.com/willibrandon/CursorMCPMonitor), a real-time monitoring tool that helps track and analyze communications between MCP clients and servers.
+For testing and debugging MCP interactions, you can use the [Model Context Protocol Inspector](https://github.com/modelcontextprotocol/inspector), a visual testing tool that helps you inspect and validate communications between MCP clients and servers. Visit the [inspector documentation](https://modelcontextprotocol.io/docs/tools/inspector) to learn more about its features and capabilities.
 
-The Model Context Protocol enables AI tools to request specific information about your codebase, making the AI's suggestions more relevant and accurate to your specific project structure and coding patterns.
+The NetContextServer enables AI collaborators to request specific information about your codebase, making the AI's suggestions more relevant and accurate to your specific project structure and coding patterns.
 
 ## Error Handling
 
